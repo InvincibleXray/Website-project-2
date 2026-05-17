@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CJN Admin Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-black text-white min-h-screen p-6">
+
+  <h1 class="text-4xl font-bold text-blue-400 mb-8">
+    CJN Applications Dashboard
+  </h1>
+
+  <div id="applications" class="grid gap-5"></div>
+
+  <script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+    import {
+      getFirestore,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
+      authDomain: "cjnsite-d3f3f.firebaseapp.com",
+      projectId: "cjnsite-d3f3f",
+      storageBucket: "cjnsite-d3f3f.firebasestorage.app",
+      messagingSenderId: "491318197551",
+      appId: "1:491318197551:web:5a3c8fd938d94d924cf5da",
+      measurementId: "G-JES3G3L45V"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+
+    // Firestore
+    const db = getFirestore(app);
+
+    // Load Applications
+    async function loadApplications() {
+
+      const querySnapshot = await getDocs(collection(db, "applications"));
+
+      const container = document.getElementById("applications");
+
+      container.innerHTML = "";
+
+      querySnapshot.forEach((doc) => {
+
+        const data = doc.data();
+
+        const card = document.createElement("div");
+
+        card.className =
+          "bg-zinc-900 border border-zinc-800 rounded-2xl p-5";
+
+        card.innerHTML = `
+          <h2 class="text-2xl font-bold text-blue-400 mb-4">
+            ${data.firstName || ""} ${data.lastName || ""}
+          </h2>
+
+          <div class="space-y-2 text-zinc-300">
+
+            <p>
+              <span class="text-white font-semibold">Email:</span>
+              ${data.email || "N/A"}
+            </p>
+
+            <p>
+              <span class="text-white font-semibold">College:</span>
+              ${data.college || "N/A"}
+            </p>
+
+            <p>
+              <span class="text-white font-semibold">City:</span>
+              ${data.city || "N/A"}
+            </p>
+
+            <p>
+              <span class="text-white font-semibold">Focus Area:</span>
+              ${data.focusArea || "N/A"}
+            </p>
+
+            <p>
+              <span class="text-white font-semibold">Message:</span>
+              ${data.message || "N/A"}
+            </p>
+
+          </div>
+        `;
+
+        container.appendChild(card);
+
+      });
+    }
+
+    // Run
+    loadApplications();
+
+  </script>
+
+</body>
+</html>
