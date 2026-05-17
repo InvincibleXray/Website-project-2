@@ -1054,5 +1054,53 @@ window.addEventListener('scroll',()=>{
   });
 },{passive:true});
 </script>
+  <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
+  authDomain: "cjnsite-d3f3f.firebaseapp.com",
+  projectId: "cjnsite-d3f3f",
+  storageBucket: "cjnsite-d3f3f.firebasestorage.app",
+  messagingSenderId: "491318197551",
+  appId: "1:491318197551:web:5a3c8fd938d94d924cf5da",
+  measurementId: "G-JES3G3L45V"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.handleApply = async function(event) {
+  event.preventDefault();
+
+  const form = event.target;
+
+  const inputs = form.querySelectorAll("input, textarea, select");
+
+  const data = {
+    firstName: inputs[0].value,
+    lastName: inputs[1].value,
+    college: inputs[2].value,
+    email: inputs[3].value,
+    city: inputs[4].value,
+    focusArea: inputs[5].value,
+    message: inputs[6].value,
+    createdAt: new Date()
+  };
+
+  try {
+    await addDoc(collection(db, "applications"), data);
+
+    alert("Application submitted successfully!");
+
+    form.reset();
+
+  } catch (error) {
+    console.error(error);
+    alert("Error submitting form");
+  }
+}
+  </script>
 </body>
 </html>
