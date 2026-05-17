@@ -23,7 +23,10 @@
     import {
       getFirestore,
       collection,
-      getDocs
+      getDocs,
+      deleteDoc,
+      doc,
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // Firebase Config
@@ -52,9 +55,9 @@
 
       container.innerHTML = "";
 
-      querySnapshot.forEach((doc) => {
+      querySnapshot.forEach((docItem) => {
 
-        const data = doc.data();
+        const data = docItem.data();
 
         const card = document.createElement("div");
 
@@ -62,9 +65,43 @@
           "bg-zinc-900 border border-zinc-800 rounded-2xl p-5";
 
         card.innerHTML = `
-          <h2 class="text-2xl font-bold text-blue-400 mb-4">
-            ${data.firstName || ""} ${data.lastName || ""}
-          </h2>
+
+          <div class="flex justify-between items-start mb-4">
+
+            <div>
+
+              <h2 class="text-2xl font-bold text-blue-400">
+                ${data.firstName || ""} ${data.lastName || ""}
+              </h2>
+
+              <p class="text-sm text-zinc-500 mt-1">
+                Status:
+                <span class="${
+                  data.status === 'approved'
+                    ? 'text-green-400'
+                    : 'text-yellow-400'
+                }">
+                  ${data.status || "pending"}
+                </span>
+              </p>
+
+            </div>
+
+            <div class="flex gap-2">
+
+              <button
+                class="approveBtn bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg">
+                Approve
+              </button>
+
+              <button
+                class="deleteBtn bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg">
+                Delete
+              </button>
+
+            </div>
+
+          </div>
 
           <div class="space-y-2 text-zinc-300">
 
@@ -94,14 +131,55 @@
             </p>
 
           </div>
+
         `;
 
         container.appendChild(card);
+
+        // DELETE BUTTON
+        const deleteBtn = card.querySelector(".deleteBtn");
+
+        deleteBtn.addEventListener("click", async () => {
+
+          const confirmDelete =
+            confirm("Delete this application?");
+
+          if (!confirmDelete) return;
+
+          await deleteDoc(
+            doc(db, "applications", docItem.id)
+          );
+
+          loadApplications();
+
+        });
+
+        // APPROVE BUTTON
+        const approveBtn = card.querySelector(".approveBtn");
+
+        approveBtn.addEventListener("click", async () => {
+
+          await updateDoc(
+            doc(db, "applications", docItem.id),
+            {
+              status: "approved"
+            }
+          );
+
+          loadApplications();
+
+        });
 
       });
     }
 
     // Run
+    loadApplications();
+
+  </script>
+
+</body>
+</html>    // Run
     loadApplications();
 
   </script>
