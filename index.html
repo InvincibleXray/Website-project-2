@@ -1128,12 +1128,13 @@
   <script>
     /* ============ FIREBASE CONFIG ============ */
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
+      authDomain: "cjnsite-d3f3f.firebaseapp.com",
+      projectId: "cjnsite-d3f3f",
+      storageBucket: "cjnsite-d3f3f.firebasestorage.app",
+      messagingSenderId: "491318197551",
+      appId: "1:491318197551:web:5a3c8fd938d94d924cf5da",
+      measurementId: "G-JES3G3L45V"
     };
 
     let db = null;
@@ -1152,6 +1153,34 @@
     let allStories = [];
     let allVideos = [];
 
+    /* ============ DEMO FALLBACK DATA ============
+       Used only when Firestore collections are empty or unavailable.
+       Replace by adding real docs to Firestore with status: "published".
+    */
+    const NOW = Date.now();
+    const ago = (d) => ({ toDate: () => new Date(NOW - d * 86400000) });
+    const SAMPLE_STORIES = [
+      { title: "Inside the hostel mess scam: ₹2.4 crore unaccounted across 6 colleges", category: "Campus Fraud", author: "Ananya Krishnan", university: "DU North Campus", coverImage: "https://picsum.photos/seed/wevox-s1/400/300", readTime: "8 min read", publishedAt: ago(2) },
+      { title: "How private hostels are rigging Bihar's NEET admissions", category: "Investigation", author: "Rohit Kumar", university: "AMU", coverImage: "https://picsum.photos/seed/wevox-s2/400/300", readTime: "12 min read", publishedAt: ago(5) },
+      { title: "The vanishing scholarships: a paper trail across 4 states", category: "Economy", author: "Priya Sharma", university: "JNU", coverImage: "https://picsum.photos/seed/wevox-s3/400/300", readTime: "10 min read", publishedAt: ago(7) },
+      { title: "Election campaigns on campus — who's funding the posters?", category: "Politics", author: "Arjun Mehta", university: "IIT Bombay", coverImage: "https://picsum.photos/seed/wevox-s4/400/300", readTime: "6 min read", publishedAt: ago(10) },
+      { title: "The new student-music underground rewriting Hindi indie", category: "Culture", author: "Sahil Verma", university: "Jadavpur University", coverImage: "https://picsum.photos/seed/wevox-s5/400/300", readTime: "7 min read", publishedAt: ago(12) },
+      { title: "Inside a fake-degree racket near a Tier-2 city", category: "Campus Fraud", author: "Neha Menon", university: "Miranda House", coverImage: "https://picsum.photos/seed/wevox-s6/400/300", readTime: "9 min read", publishedAt: ago(14) }
+    ];
+    const SAMPLE_VIDEOS = [
+      { title: "Field report: the campus protest no national channel covered", category: "Field Reports", author: "Fatima Sheikh", university: "AMU", thumbnailUrl: "https://picsum.photos/seed/wevox-v1/640/360", videoUrl: "https://www.youtube.com/watch?v=ScMzIvxBSi4", duration: "11:24", description: "An on-ground field report from the campus gates. Raw footage, unedited interviews with students who organised the demonstration.", publishedAt: ago(1) },
+      { title: "Why hostel rents doubled in 6 months — investigation", category: "Investigation", author: "Neha Menon", university: "Miranda House", thumbnailUrl: "https://picsum.photos/seed/wevox-v2/640/360", videoUrl: "https://www.youtube.com/watch?v=jNQXAC9IVRw", duration: "8:42", description: "We followed the money trail across landlords, brokers, and university officials. The result is a system designed to extract.", publishedAt: ago(4) },
+      { title: "Campus politics in 2024: the new playbook", category: "Politics", author: "Sahil Verma", university: "Jadavpur University", thumbnailUrl: "https://picsum.photos/seed/wevox-v3/640/360", videoUrl: "https://www.youtube.com/watch?v=ScMzIvxBSi4", duration: "14:08", description: "Inside the rooms where student-body decisions are made — and unmade.", publishedAt: ago(8) }
+    ];
+    const SAMPLE_TRENDING = [
+      { title: "Hostel mess scam exposé crosses 200K reads", tag: "Campus Fraud", type: "story", readCount: 214000 },
+      { title: "Bihar NEET investigation goes viral on X", tag: "Investigation", type: "story", readCount: 168000 },
+      { title: "Vanishing scholarships across 4 states", tag: "Economy", type: "story", readCount: 142000 },
+      { title: "Campus election funding deep-dive", tag: "Politics", type: "story", readCount: 98000 },
+      { title: "Field report: skipped protest footage", tag: "Field Reports", type: "video", readCount: 87000 },
+      { title: "Hindi indie underground takes over campuses", tag: "Culture", type: "story", readCount: 64000 }
+    ];
+
     /* ============ HELPERS ============ */
     const $ = (id) => document.getElementById(id);
     const escapeHtml = (str = "") => String(str)
@@ -1164,10 +1193,18 @@
     const placeholderImg = (seed = "story") =>
       `https://picsum.photos/seed/${encodeURIComponent(seed)}/400/300`;
 
+    function tsValue(ts) {
+      if (!ts) return 0;
+      try {
+        if (ts.toDate) return ts.toDate().getTime();
+        return new Date(ts).getTime() || 0;
+      } catch (e) { return 0; }
+    }
+
     function formatPublishedAt(ts) {
       try {
         const d = ts && ts.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
-        if (!d) return "";
+        if (!d || isNaN(d.getTime())) return "";
         const diff = (Date.now() - d.getTime()) / 1000;
         if (diff < 3600) return Math.max(1, Math.floor(diff / 60)) + "m ago";
         if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
@@ -1370,70 +1407,82 @@
 
     /* ============ FETCHERS ============ */
     async function fetchStories() {
-      if (!firebaseReady) return showError("storiesList");
-      try {
-        const snap = await db.collection("stories")
-          .where("status", "==", "published")
-          .orderBy("publishedAt", "desc")
-          .limit(40)
-          .get();
-        allStories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderStories();
-      } catch (err) {
-        console.error("stories fetch failed:", err);
-        showError("storiesList");
+      let docs = [];
+      if (firebaseReady) {
+        try {
+          let snap;
+          try {
+            snap = await db.collection("stories")
+              .where("status", "==", "published")
+              .orderBy("publishedAt", "desc")
+              .limit(40)
+              .get();
+          } catch (e) {
+            // Composite index missing or other query error — fall back to a simple query
+            console.warn("stories optimised query failed, falling back:", e && e.message);
+            snap = await db.collection("stories").limit(60).get();
+          }
+          docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          // Client-side filter (in case fallback query returned everything)
+          docs = docs.filter(d => !d.status || d.status === "published");
+          // Client-side sort by publishedAt desc
+          docs.sort((a, b) => tsValue(b.publishedAt) - tsValue(a.publishedAt));
+        } catch (err) {
+          console.error("stories fetch failed:", err);
+        }
       }
+      // Demo fallback so the page never looks dead
+      if (!docs.length) docs = SAMPLE_STORIES;
+      allStories = docs;
+      renderStories();
     }
 
     async function fetchVideos() {
-      if (!firebaseReady) return showError("videosList");
-      try {
-        const snap = await db.collection("videos")
-          .where("status", "==", "published")
-          .orderBy("publishedAt", "desc")
-          .limit(20)
-          .get();
-        allVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderVideos();
-      } catch (err) {
-        console.error("videos fetch failed:", err);
-        showError("videosList");
+      let docs = [];
+      if (firebaseReady) {
+        try {
+          let snap;
+          try {
+            snap = await db.collection("videos")
+              .where("status", "==", "published")
+              .orderBy("publishedAt", "desc")
+              .limit(20)
+              .get();
+          } catch (e) {
+            console.warn("videos optimised query failed, falling back:", e && e.message);
+            snap = await db.collection("videos").limit(40).get();
+          }
+          docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          docs = docs.filter(d => !d.status || d.status === "published");
+          docs.sort((a, b) => tsValue(b.publishedAt) - tsValue(a.publishedAt));
+        } catch (err) {
+          console.error("videos fetch failed:", err);
+        }
       }
+      if (!docs.length) docs = SAMPLE_VIDEOS;
+      allVideos = docs;
+      renderVideos();
     }
 
     async function fetchTrending() {
-      if (!firebaseReady) {
-        renderTicker([]);
-        renderTrending([]);
-        return;
+      let docs = [];
+      if (firebaseReady) {
+        try {
+          const snap = await db.collection("trending").limit(12).get();
+          docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+          console.error("trending fetch failed:", err);
+        }
       }
-      try {
-        const snap = await db.collection("trending").limit(12).get();
-        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderTicker(items);
-        renderTrending(items);
-      } catch (err) {
-        console.error("trending fetch failed:", err);
-        renderTicker([]);
-        $("trendingRow").innerHTML = `<div class="error-state" style="flex:1;min-width:100%;">Could not load content. Check connection.</div>`;
-      }
+      if (!docs.length) docs = SAMPLE_TRENDING;
+      renderTicker(docs);
+      renderTrending(docs);
     }
 
     /* ============ KICK OFF ============ */
-    if (firebaseReady) {
-      fetchStories();
-      fetchVideos();
-      fetchTrending();
-    } else {
-      // Show empty/error fallbacks so the page is usable without real config
-      console.info("Firebase not configured — showing empty states.");
-      allStories = [];
-      allVideos = [];
-      renderStories();
-      renderVideos();
-      renderTicker([]);
-      renderTrending([]);
-    }
+    fetchStories();
+    fetchVideos();
+    fetchTrending();
   </script>
 </body>
 </html>
