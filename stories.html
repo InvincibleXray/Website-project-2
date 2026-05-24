@@ -1,579 +1,1710 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stories — WEVOX</title>
-    <script src="https://cdn.tailwindcss.com">
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0
-        }
-        html {
-            scroll-behavior: smooth;
-            font-size: 16px
-        }
-        :root {
-            --ink: #0C0C0D;
-            --ink-2: #151515;
-            --ink-3: #1C1C1C;
-            --cream: #F4F3EF;
-            --cream-2: #ECE9E1;
-            --paper: #FAF8F3;
-            --blue: #1D4ED8;
-            --blue-soft: #DCE7FF;
-            --text: #121212;
-            --text-soft: #5A5A5A;
-            --wire: rgba(255, 255, 255, 0.06);
-            --wire-dark: rgba(0, 0, 0, 0.08);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-        }
-        body {
-            letter-spacing: -0.01em;
-            font-family: 'DM Sans', sans-serif;
-            background: var(--ink);
-            color: #fff;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-        .serif {
-            font-family: 'Playfair Display', serif;
-        }
-        .display {
-            font-family: 'Playfair Display', serif;
-            letter-spacing: -0.03em;
-        }
-        ::-webkit-scrollbar {
-            width: 3px
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--ink)
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--blue);
-            border-radius: 4px
-        }
-        .nav {
-            background: rgba(12, 12, 13, 0.75);
-            backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid var(--wire);
-        }
-        .hero-mesh {
-            background: radial-gradient(circle 700px at 20% 50%, rgba(29, 78, 216, 0.12) 0%, transparent 70%),
-                radial-gradient(circle 500px at 80% 30%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
-                linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.55)),
-                var(--ink);
-        }
-        .grain::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            opacity: .025;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-        }
-        .hero-title {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(3.2rem, 8vw, 5.5rem);
-            font-weight: 700;
-            line-height: .92;
-            letter-spacing: -0.04em;
-        }
-        .section-title {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(2rem, 4.5vw, 3.5rem);
-            line-height: 1.08;
-            font-weight: 600;
-        }
-        .label {
-            font-family: 'DM Sans', sans-serif;
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: .14em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.4);
-        }
-        .rule {
-            border: none;
-            border-top: 1px solid var(--wire)
-        }
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--blue);
-            color: #fff;
-            padding: 13px 28px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: .04em;
-            border: none;
-            cursor: pointer;
-            transition: background .2s, transform .15s;
-        }
-        .btn-primary:hover {
-            background: #1a44b8;
-            transform: translateY(-1px)
-        }
-        .btn-ghost {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: transparent;
-            color: #fff;
-            padding: 13px 28px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: .04em;
-            border: 1px solid var(--wire);
-            cursor: pointer;
-            transition: border-color .2s, background .2s, transform .15s;
-        }
-        .btn-ghost:hover {
-            border-color: rgba(255, 255, 255, .25);
-            background: rgba(255, 255, 255, .05);
-            transform: translateY(-1px)
-        }
-        .story-item {
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
-            padding: 28px 24px;
-            transition: all .35s cubic-bezier(.16, 1, .3, 1);
-            cursor: default;
-        }
-        .story-item:hover {
-            transform: translateY(-4px);
-            border-color: rgba(29, 78, 216, .3);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        .story-item .num {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.08);
-            line-height: 1;
-        }
-        .story-item h4 {
-            font-family: 'Playfair Display', serif;
-            font-weight: 500;
-            font-size: 1.1rem;
-            color: #fff;
-            margin-bottom: 4px;
-        }
-        .story-item p {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
-        .tag-pill {
-            display: inline-block;
-            padding: 6px 14px;
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: .06em;
-            text-transform: uppercase;
-            border: 1px solid var(--wire);
-            color: rgba(255, 255, 255, 0.6);
-            transition: all .3s ease;
-            cursor: default;
-        }
-        .tag-pill:hover {
-            border-color: rgba(29, 78, 216, .4);
-            color: #fff;
-            background: rgba(29, 78, 216, 0.08);
-        }
-        .community-card {
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.03);
-            padding: 40px 32px;
-            text-align: center;
-            backdrop-filter: blur(4px);
-            transition: all .35s ease;
-        }
-        .community-card:hover {
-            border-color: rgba(29, 78, 216, .3);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        .reveal {
-            opacity: 0;
-            transform: translateY(22px);
-            transition: opacity .7s ease, transform .7s cubic-bezier(.16, 1, .3, 1)
-        }
-        .reveal.in {
-            opacity: 1;
-            transform: none
-        }
-        .d1 {
-            transition-delay: .06s
-        }
-        .d2 {
-            transition-delay: .12s
-        }
-        .d3 {
-            transition-delay: .18s
-        }
-        .d4 {
-            transition-delay: .24s
-        }
-        #mob-menu {
-            transition: transform .35s cubic-bezier(.16, 1, .3, 1)
-        }
-        @media(max-width:768px) {
-            .hide-sm {
-                display: none !important
-            }
-            .hero-title {
-                font-size: clamp(2.4rem, 9vw, 3.2rem) !important;
-            }
-            .section-title {
-                font-size: clamp(1.8rem, 6vw, 2.6rem) !important;
-            }
-            .story-item {
-                padding: 20px 16px;
-            }
-            .story-item .num {
-                font-size: 1.8rem;
-            }
-            .story-item h4 {
-                font-size: 1rem;
-            }
-            .community-card {
-                padding: 28px 20px;
-            }
-        }
-        @media(max-width:480px) {
-            .hero-title {
-                font-size: clamp(2rem, 10vw, 2.6rem) !important;
-            }
-            .section-title {
-                font-size: clamp(1.5rem, 7vw, 2rem) !important;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="WEVOX Stories — investigative campus journalism, field reports, and ground zero dispatches from student correspondents across India." />
+  <meta property="og:title" content="WEVOX — All Stories" />
+  <meta property="og:description" content="Campus investigations, field reports, and ground zero dispatches." />
+  <meta property="og:type" content="website" />
+  <title>Stories — WEVOX</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #F9F7F4;
+      --bg-dark: #0D0D0D;
+      --surface: #FFFFFF;
+      --border: #E8E4DF;
+      --text-primary: #1A1A1A;
+      --text-secondary: #6B6B6B;
+      --text-muted: #9A9A9A;
+      --accent: #C8102E;
+      --accent-hover: #A50D26;
+      --tag-bg: #F0EDE8;
+      --font-headline: "Playfair Display", Georgia, serif;
+      --font-body: "DM Sans", system-ui, -apple-system, sans-serif;
+      --font-mono: "IBM Plex Mono", "Courier New", monospace;
+      --max-width: 1240px;
+      --gutter: 32px;
+      --nav-h: 57px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      font-weight: 400;
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+    ul { list-style: none; }
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--gutter); }
+    [hidden] { display: none !important; }
+
+    /* ============ NAVBAR ============ */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: rgba(249,247,244,0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      transition: box-shadow 0.25s ease;
+    }
+    .navbar.scrolled { box-shadow: 0 2px 14px rgba(0,0,0,0.05); }
+    .nav-inner {
+      max-width: var(--max-width); margin: 0 auto;
+      padding: 14px var(--gutter);
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    }
+    .logo {
+      font-family: var(--font-headline); font-weight: 900; font-size: 22px;
+      color: var(--text-primary); letter-spacing: -0.5px; flex-shrink: 0;
+    }
+    .logo .dot { color: var(--accent); }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a {
+      position: relative;
+      font-size: 14px; font-weight: 500; color: var(--text-primary);
+      padding: 4px 0; transition: color 0.2s ease;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links a.active { color: var(--accent); }
+    .nav-links a.active::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -4px;
+      height: 2px; background: var(--accent);
+      border-radius: 2px;
+    }
+    .btn-submit {
+      background: var(--accent); color: #fff;
+      padding: 8px 18px; border-radius: 4px;
+      font-size: 13px; font-weight: 600;
+      transition: background 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-submit:hover { background: var(--accent-hover); }
+    .hamburger {
+      display: none; width: 36px; height: 36px;
+      align-items: center; justify-content: center;
+      font-size: 22px; color: var(--text-primary);
+    }
+
+    /* ============ MOBILE OVERLAY ============ */
+    .mobile-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg-dark);
+      z-index: 200;
+      display: none; flex-direction: column;
+      padding: 80px 32px 32px;
+      opacity: 0; transition: opacity 0.25s ease;
+    }
+    .mobile-overlay.open { display: flex; opacity: 1; }
+    .mobile-overlay .close {
+      position: absolute; top: 22px; right: 24px;
+      font-size: 28px; color: #fff;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mobile-overlay a {
+      color: #fff; font-family: var(--font-headline);
+      font-size: 32px; font-weight: 700;
+      padding: 14px 0; border-bottom: 1px solid #1f1f1f;
+      transition: color 0.2s ease;
+    }
+    .mobile-overlay a:hover { color: var(--accent); }
+    .mobile-overlay a.active { color: var(--accent); }
+
+    /* ============ PAGE HEADER ============ */
+    .page-header {
+      background: var(--bg);
+      padding: 100px 0 32px;
+    }
+    .page-header-inner {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 24px; flex-wrap: wrap;
+    }
+    .page-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .page-title {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 52px;
+      color: var(--text-primary);
+      letter-spacing: -1.2px;
+      line-height: 1.05;
+      margin-bottom: 16px;
+    }
+    .page-title-rule {
+      width: 48px; height: 2px;
+      background: var(--accent);
+      margin-bottom: 16px;
+    }
+    .page-sub {
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 540px;
+      line-height: 1.55;
+    }
+    .count-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 16px;
+      background: var(--surface);
+      white-space: nowrap;
+    }
+    .header-divider {
+      height: 1px; background: var(--border); border: 0;
+      width: 100%;
+    }
+
+    /* ============ FILTER BAR ============ */
+    .filter-bar {
+      position: sticky;
+      top: var(--nav-h);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      padding: 12px 0;
+    }
+    .filter-inner {
+      display: flex; align-items: center;
+      gap: 14px;
+    }
+    .chips {
+      display: flex; gap: 8px; flex: 1; min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 2px 0;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      font-family: var(--font-body);
+      font-size: 13px; font-weight: 500;
+      color: var(--text-primary);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .sort-wrap {
+      flex-shrink: 0;
+      position: relative;
+    }
+    .sort-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%231A1A1A' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 12px center / 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 32px 6px 14px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.18s ease;
+    }
+    .sort-select:hover, .sort-select:focus { border-color: var(--accent); }
+    .search-wrap {
+      flex-shrink: 0;
+      display: flex; align-items: center;
+      width: 220px;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 32px 8px 14px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .search-wrap input::placeholder { color: var(--text-muted); }
+    .search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200,16,46,0.12);
+    }
+    .search-wrap .search-icon {
+      position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%);
+      width: 14px; height: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ============ FEATURED BANNER ============ */
+    .featured-banner {
+      margin-top: 40px;
+      margin-bottom: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .featured-link {
+      display: grid;
+      grid-template-columns: 55% 45%;
+      gap: 0;
+      color: inherit;
+    }
+    .featured-thumb-wrap {
+      position: relative;
+      aspect-ratio: 3/2;
+      background: var(--tag-bg);
+      overflow: hidden;
+    }
+    .featured-thumb-wrap img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .featured-link:hover .featured-thumb-wrap img { transform: scale(1.03); }
+    .featured-thumb-fallback {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 96px;
+      color: rgba(200,16,46,0.16);
+    }
+    .featured-content {
+      padding: 40px 36px;
+      display: flex; flex-direction: column; justify-content: center;
+      gap: 12px;
+    }
+    .featured-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .featured-cat-tag {
+      align-self: flex-start;
+      background: var(--tag-bg);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 3px;
+    }
+    .featured-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 28px;
+      line-height: 1.25;
+      color: var(--text-primary);
+      letter-spacing: -0.4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: color 0.2s ease;
+    }
+    .featured-link:hover .featured-title { color: var(--accent); }
+    .featured-excerpt {
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .featured-author-row {
+      display: flex; align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .featured-avatar {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-headline);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .featured-author {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .featured-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+    .featured-cta {
+      align-self: flex-start;
+      margin-top: 4px;
+      color: var(--accent);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 700;
+      transition: color 0.2s ease;
+    }
+    .featured-link:hover .featured-cta {
+      text-decoration: underline;
+      color: var(--accent-hover);
+    }
+
+    /* ============ STORIES SECTION ============ */
+    .stories-section {
+      padding: 0 0 40px;
+    }
+    .stories-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+
+    /* ============ STORY CARD (grid) ============ */
+    .story-card {
+      display: flex; flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      color: inherit;
+    }
+    .story-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.09);
+    }
+    .story-card:hover .card-thumb img { transform: scale(1.04); }
+    .story-card:hover .card-title { color: var(--accent); }
+
+    .card-thumb {
+      position: relative;
+      aspect-ratio: 16/9;
+      background: var(--tag-bg);
+      overflow: hidden;
+    }
+    .card-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .card-thumb-fallback {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 56px;
+      color: rgba(200,16,46,0.18);
+      letter-spacing: -2px;
+    }
+
+    .card-body {
+      padding: 18px;
+      display: flex; flex-direction: column;
+      flex: 1;
+    }
+    .card-cat {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .card-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 17px;
+      line-height: 1.4;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      transition: color 0.2s ease;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-excerpt {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin-bottom: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-meta-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .card-author {
+      display: flex; align-items: center; gap: 8px;
+      min-width: 0;
+    }
+    .card-avatar {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-headline);
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .card-author-text {
+      min-width: 0;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-author-text .uni {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+    .card-readtime {
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ============ SKELETON ============ */
+    .skeleton {
+      background: linear-gradient(90deg, #E8E4DF 25%, #F5F2EE 50%, #E8E4DF 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skel-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .skel-thumb { aspect-ratio: 16/9; width: 100%; border-radius: 0; }
+    .skel-body { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+    .skel-line { height: 12px; }
+    .skel-line.w85 { width: 85%; }
+    .skel-line.w65 { width: 65%; }
+    .skel-line.w40 { width: 40%; }
+
+    /* ============ EMPTY / NO RESULTS / ERROR STATES ============ */
+    .state-block {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text-secondary);
+    }
+    .state-block .emoji {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+    .state-block h3 {
+      font-family: var(--font-headline);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .state-block p {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 460px;
+      margin: 0 auto 16px;
+      line-height: 1.55;
+    }
+    .state-link {
+      color: var(--accent);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.2s ease;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    .state-link:hover { color: var(--accent-hover); text-decoration: underline; }
+    .no-results-msg {
+      font-family: var(--font-body);
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .no-results-q {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ============ LOAD MORE ============ */
+    .load-more-wrap { text-align: center; }
+    .load-more-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      margin: 40px auto 0;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      background: transparent;
+      padding: 12px 48px;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .load-more-btn:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+    .load-more-btn[disabled] {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .end-note {
+      margin: 40px auto 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============ TRENDING STRIP ============ */
+    .trending-strip {
+      background: var(--tag-bg);
+      padding: 48px 0;
+    }
+    .trending-head {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .trending-title-block h2 {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 28px;
+      color: var(--text-primary);
+      position: relative;
+      padding-bottom: 12px;
+      letter-spacing: -0.4px;
+    }
+    .trending-title-block h2::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: 0;
+      width: 40px; height: 2px;
+      background: var(--accent);
+    }
+    .trending-view-all {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s ease;
+    }
+    .trending-view-all:hover { color: var(--accent-hover); }
+    .trending-row {
+      display: flex; gap: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 4px;
+    }
+    .trending-row::-webkit-scrollbar { display: none; }
+    .trending-card {
+      position: relative;
+      flex-shrink: 0;
+      min-width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      color: inherit;
+      display: flex; flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .trending-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+    .trending-num {
+      position: absolute;
+      top: 12px; right: 16px;
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 36px;
+      color: rgba(200,16,46,0.15);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .trending-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .trending-card-title {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: color 0.2s ease;
+    }
+    .trending-card:hover .trending-card-title { color: var(--accent); }
+    .trending-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+    .trending-empty {
+      flex: 1;
+      min-width: 100%;
+      padding: 24px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ============ FOOTER ============ */
+    footer {
+      background: var(--bg-dark);
+      color: #F9F7F4;
+      padding: 56px 0 0;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 48px;
+      padding-bottom: 40px;
+    }
+    .footer-logo {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 24px;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .footer-tagline { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .socials { display: flex; gap: 14px; }
+    .socials a {
+      width: 36px; height: 36px;
+      border: 1px solid #2a2a2a;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .socials a:hover { border-color: var(--accent); background: var(--accent); }
+    .socials svg { width: 16px; height: 16px; fill: #fff; }
+    .footer-heading {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+    .footer-col ul li { margin-bottom: 10px; }
+    .footer-col a {
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid #1c1c1c;
+      padding: 18px 0;
+      display: flex; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #4A4A4A;
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 1024px) {
+      .stories-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+      .featured-link { grid-template-columns: 50% 50%; }
+      .featured-content { padding: 28px 24px; }
+      .featured-title { font-size: 24px; }
+      .page-title { font-size: 44px; }
+    }
+
+    @media (max-width: 768px) {
+      :root { --gutter: 20px; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .btn-submit { padding: 7px 14px; font-size: 12px; }
+
+      .page-header { padding: 90px 0 24px; }
+      .page-title { font-size: 34px; }
+      .page-sub { font-size: 15px; }
+      .count-pill { display: none; }
+
+      .filter-inner { flex-wrap: wrap; gap: 10px; }
+      .chips { order: 1; flex: 1 1 100%; }
+      .sort-wrap { order: 2; flex: 0 0 auto; }
+      .search-wrap { order: 3; width: 100%; flex: 1 1 100%; }
+
+      .featured-banner { margin-top: 24px; margin-bottom: 32px; border-radius: 10px; }
+      .featured-link { grid-template-columns: 1fr; }
+      .featured-thumb-wrap { aspect-ratio: 16/9; }
+      .featured-content { padding: 22px 20px; gap: 10px; }
+      .featured-title { font-size: 22px; }
+
+      /* Mobile list-style cards */
+      .stories-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      .story-card {
+        flex-direction: row;
+        gap: 14px;
+        align-items: stretch;
+        padding: 16px 0;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        box-shadow: none !important;
+      }
+      .story-card:hover { transform: none; box-shadow: none; }
+      .card-thumb {
+        flex: 0 0 100px;
+        width: 100px;
+        height: 70px;
+        aspect-ratio: auto;
+        border-radius: 6px;
+        align-self: flex-start;
+      }
+      .card-body {
+        padding: 0;
+        gap: 4px;
+      }
+      .card-cat { margin-bottom: 4px; }
+      .card-title { font-size: 15px; margin-bottom: 4px; }
+      .card-excerpt { display: none; }
+      .card-meta-row { gap: 8px; }
+      .card-author-text { font-size: 11px; }
+      .card-readtime { font-size: 10px; }
+
+      .skel-card { display: flex; flex-direction: row; gap: 14px; padding: 16px 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
+      .skel-thumb { flex: 0 0 100px; width: 100px; height: 70px; aspect-ratio: auto; border-radius: 6px; }
+      .skel-body { padding: 0; flex: 1; }
+
+      .trending-strip { padding: 36px 0; }
+      .trending-card { min-width: 200px; padding: 16px; }
+
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 480px) {
+      .page-title { font-size: 30px; }
+      .nav-inner { padding: 12px var(--gutter); }
+      .logo { font-size: 20px; }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- ═══════════════════════════════════════════
-    NAV
-    ═══════════════════════════════════════════ -->
-    <header class="nav fixed top-0 left-0 right-0 z-50">
-        <div class="max-w-screen-xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
-
-            <!-- Logo -->
-            <a href="index.html" class="flex items-center gap-2.5 flex-shrink-0">
-                <div class="w-7 h-7 bg-blue-700 flex items-center justify-center">
-                    <span class="display text-white font-bold text-sm">Y</span>
-                </div>
-                <span class="display font-bold text-white tracking-tight text-lg">Yuvox</span>
-            </a>
-
-            <!-- Center links -->
-            <nav class="hidden md:flex items-center gap-8">
-                <a href="index.html" class="text-xs font-medium tracking-widest uppercase text-zinc-500 hover:text-white transition-colors">Home</a>
-                <a href="about.html" class="text-xs font-medium tracking-widest uppercase text-zinc-500 hover:text-white transition-colors">About</a>
-                <a href="stories.html" class="text-xs font-medium tracking-widest uppercase text-white transition-colors">Stories</a>
-                <a href="index.html#community" class="text-xs font-medium tracking-widest uppercase text-zinc-500 hover:text-white transition-colors">Community</a>
-                <a href="join.html" class="text-xs font-medium tracking-widest uppercase text-zinc-500 hover:text-white transition-colors">Join</a>
-            </nav>
-
-            <!-- Right -->
-            <div class="flex items-center gap-3">
-                <a href="join.html" class="btn-primary hide-sm" style="padding:9px 20px;font-size:12px">Join Movement</a>
-                <button id="ham" onclick="toggleMob()" class="md:hidden w-9 h-9 flex flex-col items-center justify-center gap-1.5">
-                    <span class="block w-5 h-px bg-white transition-all" id="h1"></span>
-                    <span class="block w-5 h-px bg-white transition-all" id="h2"></span>
-                    <span class="block w-3.5 h-px bg-white transition-all self-start" id="h3"></span>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Mobile menu -->
-    <div id="mob-menu" class="fixed inset-0 bg-[#0C0C0D] z-40 flex flex-col items-center justify-center gap-7 transform translate-x-full md:hidden">
-        <a href="index.html" onclick="toggleMob()" class="display text-3xl font-bold uppercase tracking-tight text-white hover:text-blue-400 transition-colors">Home</a>
-        <a href="about.html" onclick="toggleMob()" class="display text-3xl font-bold uppercase tracking-tight text-white hover:text-blue-400 transition-colors">About</a>
-        <a href="stories.html" onclick="toggleMob()" class="display text-3xl font-bold uppercase tracking-tight text-white hover:text-blue-400 transition-colors">Stories</a>
-        <a href="index.html#community" onclick="toggleMob()" class="display text-3xl font-bold uppercase tracking-tight text-white hover:text-blue-400 transition-colors">Community</a>
-        <a href="join.html" onclick="toggleMob()" class="display text-3xl font-bold uppercase tracking-tight text-white hover:text-blue-400 transition-colors">Join</a>
-        <a href="join.html" onclick="toggleMob()" class="btn-primary mt-4" style="font-size:14px;padding:14px 36px">Join Movement</a>
+  <!-- NAVBAR -->
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">WEVOX<span class="dot">.</span></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="stories.html" class="active" aria-current="page">Stories</a>
+        <a href="media.html">Videos</a>
+        <a href="index.html#trending">Trending</a>
+        <a href="about.html">Community</a>
+        <a href="about.html">About</a>
+      </nav>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a href="submit.html" class="btn-submit">Submit Story</a>
+        <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+      </div>
     </div>
+  </header>
 
+  <!-- MOBILE OVERLAY -->
+  <div class="mobile-overlay" id="mobileOverlay" aria-hidden="true">
+    <button class="close" id="overlayClose" aria-label="Close menu">✕</button>
+    <a href="stories.html" class="active" aria-current="page">Stories</a>
+    <a href="media.html">Videos</a>
+    <a href="index.html#trending">Trending</a>
+    <a href="about.html">Community</a>
+    <a href="about.html">About</a>
+    <a href="submit.html">Submit Story</a>
+  </div>
 
-    <!-- ═══════════════════════════════════════════
-    HERO
-    ═══════════════════════════════════════════ -->
-    <section class="hero-mesh grain relative min-h-[60vh] flex flex-col pt-16 overflow-hidden">
-
-        <!-- Grid decoration -->
-        <div class="absolute inset-0 pointer-events-none" style="background-image:linear-gradient(var(--wire) 1px,transparent 1px),linear-gradient(90deg,var(--wire) 1px,transparent 1px);background-size:72px 72px;opacity:.5"></div>
-
-        <!-- Content -->
-        <div class="relative z-10 flex-1 flex items-center">
-            <div class="max-w-screen-xl mx-auto w-full px-6 py-20 md:py-24">
-
-                <div class="max-w-3xl">
-                    <!-- Eyebrow -->
-                    <div class="reveal flex items-center gap-3 mb-6">
-                        <span class="live-dot w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>
-                        <span class="label" style="color:#5b85f5;letter-spacing:.2em">Stories From The Ground</span>
-                    </div>
-
-                    <!-- Headline -->
-                    <h1 class="hero-title reveal d1 mb-6">
-                        Real voices.<br />
-                        <span class="serif" style="color:#5b85f5;font-weight:400;font-style:italic;">Real people. Real impact.</span>
-                    </h1>
-
-                    <!-- Sub -->
-                    <p class="reveal d2 text-zinc-400 text-lg leading-relaxed max-w-xl" style="font-weight:300">
-                        Explore reports, public stories, interviews, and conversations shaping the next generation.
-                    </p>
-                </div>
-
-            </div>
+  <!-- PAGE HEADER -->
+  <section class="page-header">
+    <div class="container">
+      <div class="page-header-inner">
+        <div>
+          <div class="page-eyebrow">INVESTIGATIVE JOURNALISM</div>
+          <h1 class="page-title">All Stories.</h1>
+          <div class="page-title-rule"></div>
+          <p class="page-sub">Campus investigations, field reports, and ground zero dispatches.</p>
         </div>
+        <div class="count-pill" id="countPill" aria-live="polite">[ — Stories Published ]</div>
+      </div>
+    </div>
+  </section>
+  <hr class="header-divider" />
+
+  <!-- FILTER + SORT + SEARCH BAR -->
+  <div class="filter-bar" role="region" aria-label="Filter, sort and search">
+    <div class="container filter-inner">
+      <div class="chips" id="categoryChips" role="tablist">
+        <button class="chip active" data-cat="All" role="tab" aria-selected="true">All</button>
+        <button class="chip" data-cat="Campus Fraud" role="tab">Campus Fraud</button>
+        <button class="chip" data-cat="Economy" role="tab">Economy</button>
+        <button class="chip" data-cat="Politics" role="tab">Politics</button>
+        <button class="chip" data-cat="Culture" role="tab">Culture</button>
+        <button class="chip" data-cat="Investigation" role="tab">Investigation</button>
+        <button class="chip" data-cat="Field Reports" role="tab">Field Reports</button>
+        <button class="chip" data-cat="Documentary" role="tab">Documentary</button>
+      </div>
+      <div class="sort-wrap">
+        <select id="sortSelect" class="sort-select" aria-label="Sort stories">
+          <option value="latest">Latest First</option>
+          <option value="mostread">Most Read</option>
+          <option value="oldest">Oldest First</option>
+        </select>
+      </div>
+      <div class="search-wrap">
+        <input type="search" id="searchInput" placeholder="Search stories..." aria-label="Search stories" />
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="container">
+
+    <!-- FEATURED BANNER -->
+    <section class="featured-banner" id="featuredBanner" hidden>
+      <a class="featured-link" id="featuredLink" href="#">
+        <div class="featured-thumb-wrap">
+          <img id="featuredThumb" alt="" loading="lazy" />
+          <div class="featured-thumb-fallback" id="featuredFallback" hidden>📰</div>
+        </div>
+        <div class="featured-content">
+          <span class="featured-label">FEATURED STORY</span>
+          <span class="featured-cat-tag" id="featuredCat">—</span>
+          <h2 class="featured-title" id="featuredTitle"></h2>
+          <p class="featured-excerpt" id="featuredExcerpt"></p>
+          <div class="featured-author-row">
+            <div class="featured-avatar" id="featuredAvatar">W</div>
+            <div class="featured-author" id="featuredAuthor"></div>
+          </div>
+          <div class="featured-meta" id="featuredMeta"></div>
+          <span class="featured-cta">Read Full Story →</span>
+        </div>
+      </a>
     </section>
 
+    <!-- STORIES GRID -->
+    <section class="stories-section">
+      <div class="stories-grid" id="storiesGrid"></div>
 
-    <!-- ═══════════════════════════════════════════
-    FEATURED STORIES
-    ═══════════════════════════════════════════ -->
-    <section class="py-16 md:py-24 px-6" style="background:var(--ink-2)">
-        <div class="max-w-screen-xl mx-auto">
-
-            <div class="flex items-end justify-between mb-10 md:mb-12 reveal">
-                <div>
-                    <div class="label mb-4" style="color:rgba(255,255,255,0.3);">Featured Stories</div>
-                    <h2 class="section-title leading-tight text-white">
-                        Stories that<br />
-                        <span class="serif" style="color:#5b85f5;font-style:italic;">need to be heard.</span>
-                    </h2>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                <div class="story-item reveal">
-                    <div class="flex items-start gap-4">
-                        <span class="num">01</span>
-                        <div>
-                            <h4>Voices From Small Town India</h4>
-                            <p>Ground reports from beyond the metros — stories of resilience and change.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="story-item reveal d1">
-                    <div class="flex items-start gap-4">
-                        <span class="num">02</span>
-                        <div>
-                            <h4>The Reality Of Student Life</h4>
-                            <p>Unfiltered campus stories that the mainstream media often ignores.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="story-item reveal d2">
-                    <div class="flex items-start gap-4">
-                        <span class="num">03</span>
-                        <div>
-                            <h4>Stories Beyond Headlines</h4>
-                            <p>Deep-dives into issues that shape our communities and our future.</p>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
+      <div class="load-more-wrap">
+        <button class="load-more-btn" id="loadMoreBtn" hidden>Load More</button>
+        <div class="end-note" id="endNote" hidden>You've read everything.</div>
+      </div>
     </section>
+  </main>
 
-
-    <!-- ═══════════════════════════════════════════
-    TRENDING VIDEOS
-    ═══════════════════════════════════════════ -->
-    <section class="py-16 md:py-24 px-6" style="background:var(--ink)">
-        <div class="max-w-screen-xl mx-auto">
-
-            <div class="flex items-end justify-between mb-10 md:mb-12 reveal">
-                <div>
-                    <div class="label mb-4" style="color:rgba(255,255,255,0.3);">Trending Videos</div>
-                    <h2 class="section-title leading-tight text-white">
-                        Watch what's<br />
-                        <span class="serif" style="color:#5b85f5;font-style:italic;">capturing attention.</span>
-                    </h2>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap gap-2 md:gap-3">
-
-                <span class="tag-pill">Ground Reports</span>
-                <span class="tag-pill">Public Conversations</span>
-                <span class="tag-pill">Campus Stories</span>
-                <span class="tag-pill">Interviews</span>
-                <span class="tag-pill">Social Issues</span>
-
-            </div>
-
+  <!-- TRENDING STRIP -->
+  <section class="trending-strip" aria-labelledby="trending-heading">
+    <div class="container">
+      <div class="trending-head">
+        <div class="trending-title-block">
+          <h2 id="trending-heading">Trending Now</h2>
         </div>
-    </section>
-
-
-    <!-- ═══════════════════════════════════════════
-    COMMUNITY STORIES
-    ═══════════════════════════════════════════ -->
-    <section class="py-16 md:py-24 px-6" style="background:var(--ink-2)">
-        <div class="max-w-screen-xl mx-auto">
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
-
-                <div class="reveal">
-                    <div class="label mb-4" style="color:rgba(255,255,255,0.3);">Community Stories</div>
-                    <h2 class="section-title leading-tight text-white">
-                        Perspectives from<br />
-                        <span class="serif" style="color:#5b85f5;font-style:italic;">across the country.</span>
-                    </h2>
-                    <p class="text-base leading-relaxed mt-4" style="color:rgba(255,255,255,0.6);font-weight:300;">
-                        Stories and perspectives shared by reporters, students, and young storytellers from different cities and campuses.
-                    </p>
-                    <a href="join.html" class="inline-flex items-center gap-2 text-blue-400 text-sm font-medium mt-6 hover:text-blue-300 transition-colors">
-                        Share your story →
-                    </a>
-                </div>
-
-                <div class="community-card reveal d1">
-                    <div class="value-icon text-4xl mb-4">🗣️</div>
-                    <h4 class="text-white font-semibold text-lg mb-2">Every voice matters.</h4>
-                    <p class="text-sm" style="color:rgba(255,255,255,0.5);">
-                        Join hundreds of young storytellers who are already sharing their experiences and shaping the conversation.
-                    </p>
-                    <a href="join.html" class="btn-primary mt-6" style="padding:10px 24px;font-size:12px;">Become a storyteller</a>
-                </div>
-
-            </div>
-
+        <a href="index.html#trending" class="trending-view-all">View all →</a>
+      </div>
+      <div class="trending-row" id="trendingRow">
+        <!-- skeleton/empty/data injected here -->
+        <div class="trending-card" aria-hidden="true">
+          <div class="skeleton skel-line w40" style="height:10px;width:60px;"></div>
+          <div class="skeleton skel-line w85" style="height:18px;"></div>
+          <div class="skeleton skel-line w65" style="height:12px;width:40%;"></div>
         </div>
-    </section>
-
-
-    <!-- ═══════════════════════════════════════════
-    FOOTER
-    ═══════════════════════════════════════════ -->
-    <footer class="px-6 pt-16 md:pt-20 pb-10 border-t border-white/10" style="background:var(--ink);">
-
-        <div class="max-w-screen-xl mx-auto">
-
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6 md:gap-14 mb-16 md:mb-20">
-
-                <!-- Brand -->
-                <div class="col-span-2 sm:col-span-3 md:col-span-2">
-
-                    <div class="flex items-center gap-3 mb-6">
-
-                        <div class="w-8 h-8 bg-blue-700 flex items-center justify-center rounded-sm">
-                            <span class="display font-bold text-white text-sm">Y</span>
-                        </div>
-
-                        <span class="display text-2xl text-white">
-                            Yuvox
-                        </span>
-
-                    </div>
-
-                    <p class="text-sm leading-relaxed mb-8 max-w-sm text-zinc-500" style="font-weight:400">
-                        India's youth-driven journalism and storytelling network — building the next generation of reporters, filmmakers, investigators, and truth-seekers.
-                    </p>
-
-                    <div class="flex items-center gap-3">
-                        <a href="#" class="w-10 h-10 border border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400 hover:border-blue-400 transition-all">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"/></svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 border border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400 hover:border-blue-400 transition-all">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/></svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 border border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400 hover:border-blue-400 transition-all">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286z"/></svg>
-                        </a>
-                    </div>
-
-                </div>
-
-                <!-- Platform -->
-                <div>
-                    <div class="label-dark mb-5" style="color:rgba(255,255,255,0.3);">Platform</div>
-                    <ul class="space-y-3 text-sm text-zinc-500">
-                        <li><a href="stories.html" class="hover:text-blue-400 transition-colors">Stories</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Documentaries</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Campus Reports</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Interviews</a></li>
-                    </ul>
-                </div>
-
-                <!-- Community -->
-                <div>
-                    <div class="label-dark mb-5" style="color:rgba(255,255,255,0.3);">Community</div>
-                    <ul class="space-y-3 text-sm text-zinc-500">
-                        <li><a href="join.html" class="hover:text-blue-400 transition-colors">Join WEVOX</a></li>
-                        <li><a href="index.html#community" class="hover:text-blue-400 transition-colors">Mentorship</a></li>
-                        <li><a href="index.html#spotlight" class="hover:text-blue-400 transition-colors">Spotlight</a></li>
-                    </ul>
-                </div>
-
-                <!-- Company -->
-                <div>
-                    <div class="label-dark mb-5" style="color:rgba(255,255,255,0.3);">Company</div>
-                    <ul class="space-y-3 text-sm text-zinc-500">
-                        <li><a href="about.html" class="hover:text-blue-400 transition-colors">About</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Editorial Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-400 transition-colors">Contact</a></li>
-                    </ul>
-                </div>
-
-            </div>
-
-            <!-- Bottom -->
-            <div class="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-5">
-                <p class="text-xs tracking-wide text-zinc-500 uppercase">© 2025 Yuvox · Voices of Young India</p>
-                <div class="flex items-center gap-6 text-xs uppercase tracking-wide text-zinc-500">
-                    <a href="#" class="hover:text-blue-400 transition-colors">Privacy</a>
-                    <a href="#" class="hover:text-blue-400 transition-colors">Terms</a>
-                    <a href="#" class="hover:text-blue-400 transition-colors">Cookies</a>
-                </div>
-            </div>
-
+        <div class="trending-card" aria-hidden="true">
+          <div class="skeleton skel-line w40" style="height:10px;width:60px;"></div>
+          <div class="skeleton skel-line w85" style="height:18px;"></div>
+          <div class="skeleton skel-line w65" style="height:12px;width:40%;"></div>
         </div>
-    </footer>
+        <div class="trending-card" aria-hidden="true">
+          <div class="skeleton skel-line w40" style="height:10px;width:60px;"></div>
+          <div class="skeleton skel-line w85" style="height:18px;"></div>
+          <div class="skeleton skel-line w65" style="height:12px;width:40%;"></div>
+        </div>
+        <div class="trending-card" aria-hidden="true">
+          <div class="skeleton skel-line w40" style="height:10px;width:60px;"></div>
+          <div class="skeleton skel-line w85" style="height:18px;"></div>
+          <div class="skeleton skel-line w65" style="height:12px;width:40%;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-logo">WEVOX<span style="color:var(--accent)">.</span></div>
+          <p class="footer-tagline">Student journalism. No filters.</p>
+          <div class="socials" aria-label="Social media">
+            <a id="social-twitter" href="#" aria-label="Twitter"><svg viewBox="0 0 24 24"><path d="M22 5.8c-.7.3-1.5.5-2.4.6.9-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1-.7-.8-1.8-1.3-3-1.3-2.3 0-4.1 1.8-4.1 4.1 0 .3 0 .6.1.9-3.4-.2-6.4-1.8-8.4-4.3-.4.6-.6 1.3-.6 2.1 0 1.4.7 2.7 1.8 3.4-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.7 3.3 4-.3.1-.7.1-1.1.1-.3 0-.5 0-.8-.1.5 1.6 2.1 2.8 3.9 2.9-1.4 1.1-3.2 1.8-5.2 1.8H2c1.8 1.2 4 1.9 6.3 1.9 7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.2z"/></svg></a>
+            <a id="social-youtube" href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23 12c0-2-.2-3.5-.4-4.4-.2-.6-.8-1.2-1.4-1.4C19.5 5.8 12 5.8 12 5.8s-7.5 0-9.2.4c-.6.2-1.2.8-1.4 1.4-.4 1.7-.4 5.4-.4 5.4s0 3.7.4 5.4c.2.6.8 1.2 1.4 1.4 1.7.4 9.2.4 9.2.4s7.5 0 9.2-.4c.6-.2 1.2-.8 1.4-1.4.2-.9.4-2.4.4-4.4zM9.6 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+            <a id="social-instagram" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.4.4 1 .4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.4.2-1 .4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 2c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.3.8-.4.4-.6.8-.8 1.3-.2.4-.3 1-.4 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.3.4.4.8.6 1.3.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.3-.8.4-.4.6-.8.8-1.3.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1-.2-.5-.4-.9-.8-1.3-.4-.4-.8-.6-1.3-.8-.4-.2-1-.3-2.1-.4-1.2-.1-1.6-.1-4.7-.1zm0 3.4a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 7.2a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6zm5.6-7.4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <div class="footer-heading">Explore</div>
+          <ul>
+            <li><a href="stories.html">Stories</a></li>
+            <li><a href="media.html">Field Reports</a></li>
+            <li><a href="index.html#trending">Trending</a></li>
+            <li><a href="about.html">Community</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="submit.html">Submit Story</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <div class="footer-heading">Network</div>
+          <ul>
+            <li><a href="#">North Desk Hub</a></li>
+            <li><a href="#">Southern Grid Frontiers</a></li>
+            <li><a href="#">Verification Protocol Ledger</a></li>
+            <li><a href="#">Public Transparency Index</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© <span id="copy-year">2024</span> WEVOX Network Platforms Inc.</div>
+        <div id="footer-email">contact@wevox.in</div>
+      </div>
+    </div>
+  </footer>
 
-    <!-- ═══════════════════════════════════════════
-    SCRIPTS
-    ═══════════════════════════════════════════ -->
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    <script>
-        // Mobile menu
-        function toggleMob() {
-            const m = document.getElementById('mob-menu');
-            m.classList.toggle('translate-x-full');
+  <script>
+    /* ============ FIREBASE CONFIG (same as index.html) ============ */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
+      authDomain: "cjnsite-d3f3f.firebaseapp.com",
+      projectId: "cjnsite-d3f3f",
+      storageBucket: "cjnsite-d3f3f.firebasestorage.app",
+      messagingSenderId: "491318197551",
+      appId: "1:491318197551:web:5a3c8fd938d94d924cf5da",
+      measurementId: "G-JES3G3L45V"
+    };
+
+    let db = null;
+    let firebaseReady = false;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      firebaseReady = true;
+    } catch (err) {
+      console.warn("Firebase init failed:", err);
+      firebaseReady = false;
+    }
+    const isRealConfig = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('YOUR_');
+    if (!isRealConfig) {
+      console.warn('Firebase placeholder config detected — using empty state only');
+      firebaseReady = false;
+    }
+
+    /* ============ STATE ============ */
+    const PAGE_SIZE = 9;
+    let lastDoc = null;
+    let allLoaded = false;
+    let currentCategory = 'All';
+    let currentSort = 'latest';
+    let currentSearch = '';
+    let loadedStories = [];
+    let fallbackMode = false;
+
+    /* ============ DOM REFS ============ */
+    const $ = (id) => document.getElementById(id);
+    const navbar = $('navbar');
+    const hamburger = $('hamburger');
+    const mobileOverlay = $('mobileOverlay');
+    const overlayClose = $('overlayClose');
+    const grid = $('storiesGrid');
+    const loadMoreBtn = $('loadMoreBtn');
+    const endNote = $('endNote');
+    const searchInput = $('searchInput');
+    const sortSelect = $('sortSelect');
+    const chipsRoot = $('categoryChips');
+    const countPill = $('countPill');
+    const featuredBanner = $('featuredBanner');
+    const trendingRow = $('trendingRow');
+
+    /* ============ HELPERS ============ */
+    const escapeHtml = (s = "") => String(s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+    function getTime(ts) {
+      if (!ts) return 0;
+      try {
+        if (ts.toDate) return ts.toDate().getTime();
+        if (ts.seconds) return ts.seconds * 1000;
+        return new Date(ts).getTime() || 0;
+      } catch (e) { return 0; }
+    }
+
+    function formatDate(ts) {
+      try {
+        const d = ts && ts.toDate ? ts.toDate() : (ts ? new Date(ts) : new Date());
+        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+      } catch (e) { return ""; }
+    }
+
+    function formatTimeAgo(ts) {
+      const t = getTime(ts);
+      if (!t) return '';
+      const diff = Date.now() - t;
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      const d = Math.floor(h / 24);
+      if (d < 7) return d + 'd ago';
+      const w = Math.floor(d / 7);
+      if (w < 5) return w + 'w ago';
+      return formatDate(ts);
+    }
+
+    function formatViews(n) {
+      n = Number(n) || 0;
+      if (n < 1000) return n.toLocaleString() + ' reads';
+      if (n < 100000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K reads';
+      if (n < 1000000) return Math.round(n / 1000) + 'K reads';
+      return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M reads';
+    }
+
+    function initials(name) {
+      if (!name) return 'W';
+      return name.split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+    }
+
+    function placeholderImg(seed) {
+      return `https://picsum.photos/seed/${encodeURIComponent(seed || 'wevox')}/1200/675`;
+    }
+
+    function categoryInitial(cat) {
+      if (!cat) return '·';
+      const ch = cat.trim().charAt(0).toUpperCase();
+      return ch || '·';
+    }
+
+    /* ============ NAVBAR / HAMBURGER ============ */
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 30);
+    });
+    hamburger.addEventListener('click', () => {
+      mobileOverlay.classList.add('open');
+      mobileOverlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    });
+    function closeMenu() {
+      mobileOverlay.classList.remove('open');
+      mobileOverlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+    overlayClose.addEventListener('click', closeMenu);
+    mobileOverlay.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+
+    /* ============ SKELETONS / STATES ============ */
+    function renderSkeletons(count = PAGE_SIZE) {
+      featuredBanner.hidden = true;
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="skel-card" aria-hidden="true">
+            <div class="skeleton skel-thumb"></div>
+            <div class="skel-body">
+              <div class="skeleton skel-line w40"></div>
+              <div class="skeleton skel-line w85"></div>
+              <div class="skeleton skel-line w65"></div>
+              <div class="skeleton skel-line w40"></div>
+            </div>
+          </div>`;
+      }
+      grid.innerHTML = html;
+      loadMoreBtn.hidden = true;
+      endNote.hidden = true;
+    }
+
+    function showEmptyState() {
+      featuredBanner.hidden = true;
+      grid.innerHTML = `
+        <div class="state-block">
+          <div class="emoji">📰</div>
+          <h3>No stories published yet.</h3>
+          <p>Our correspondents are gathering their reports.</p>
+          <a class="state-link" href="submit.html">Submit Your Story →</a>
+        </div>`;
+      loadMoreBtn.hidden = true;
+      endNote.hidden = true;
+    }
+
+    function showNoResults() {
+      featuredBanner.hidden = true;
+      grid.innerHTML = `
+        <div class="state-block">
+          <p class="no-results-msg">No results for "<span class="no-results-q">${escapeHtml(currentSearch)}</span>"</p>
+          <p>Try different keywords or browse all categories.</p>
+          <button type="button" class="state-link" id="clearSearchBtn">Clear search ×</button>
+        </div>`;
+      const clearBtn = $('clearSearchBtn');
+      if (clearBtn) clearBtn.addEventListener('click', () => {
+        currentSearch = '';
+        searchInput.value = '';
+        applyAndRender();
+      });
+      loadMoreBtn.hidden = true;
+      endNote.hidden = true;
+    }
+
+    function showErrorState() {
+      featuredBanner.hidden = true;
+      grid.innerHTML = `
+        <div class="state-block">
+          <div class="emoji">⚠️</div>
+          <h3>Could not load stories.</h3>
+          <p>Check your connection and try again.</p>
+          <button type="button" class="state-link" id="retryBtn">Retry →</button>
+        </div>`;
+      const retryBtn = $('retryBtn');
+      if (retryBtn) retryBtn.addEventListener('click', () => fetchStories(true));
+      loadMoreBtn.hidden = true;
+      endNote.hidden = true;
+    }
+
+    /* ============ FEATURED BANNER ============ */
+    function renderFeatured(story) {
+      if (!story) {
+        featuredBanner.hidden = true;
+        return;
+      }
+      const link = $('featuredLink');
+      const thumb = $('featuredThumb');
+      const fallback = $('featuredFallback');
+
+      link.href = `story.html?id=${encodeURIComponent(story.id)}`;
+      const cover = story.coverImage || '';
+      if (cover) {
+        thumb.style.display = '';
+        fallback.hidden = true;
+        thumb.src = cover;
+        thumb.onerror = () => {
+          thumb.style.display = 'none';
+          fallback.hidden = false;
+        };
+      } else {
+        thumb.style.display = 'none';
+        fallback.hidden = false;
+      }
+
+      $('featuredCat').textContent = story.category || 'Stories';
+      $('featuredTitle').textContent = story.title || 'Untitled';
+      $('featuredExcerpt').textContent = story.excerpt || '';
+
+      const author = story.author || 'Anonymous';
+      const uni = story.university || 'Independent';
+      $('featuredAvatar').textContent = initials(author);
+      $('featuredAuthor').textContent = `By ${author} — ${uni}`;
+
+      const readTime = story.readTime || '5 min read';
+      const date = formatDate(story.publishedAt);
+      $('featuredMeta').textContent = `${readTime}${date ? ' • ' + date : ''}`;
+
+      featuredBanner.hidden = false;
+    }
+
+    /* ============ STORY CARD ============ */
+    function storyCardHTML(s) {
+      const id = s.id;
+      const cat = s.category || 'Stories';
+      const title = s.title || 'Untitled';
+      const excerpt = s.excerpt || '';
+      const author = s.author || 'Anonymous';
+      const uni = s.university || 'Independent';
+      const readTime = s.readTime || '5 min read';
+      const ago = formatTimeAgo(s.publishedAt);
+      const thumb = s.coverImage || '';
+      const safeId = encodeURIComponent(id);
+
+      return `
+        <a class="story-card" href="story.html?id=${safeId}" aria-label="${escapeHtml(title)}">
+          <div class="card-thumb">
+            ${thumb
+              ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false;" />
+                 <div class="card-thumb-fallback" hidden>${escapeHtml(categoryInitial(cat))}</div>`
+              : `<div class="card-thumb-fallback">${escapeHtml(categoryInitial(cat))}</div>`
+            }
+          </div>
+          <div class="card-body">
+            <div class="card-cat">${escapeHtml(cat)}</div>
+            <div class="card-title">${escapeHtml(title)}</div>
+            ${excerpt ? `<div class="card-excerpt">${escapeHtml(excerpt)}</div>` : ''}
+            <div class="card-meta-row">
+              <div class="card-author">
+                <div class="card-avatar">${escapeHtml(initials(author))}</div>
+                <div class="card-author-text">By ${escapeHtml(author)}<span class="uni"> — ${escapeHtml(uni)}</span></div>
+              </div>
+              <div class="card-readtime">${escapeHtml(readTime)}${ago ? ' • ' + escapeHtml(ago) : ''}</div>
+            </div>
+          </div>
+        </a>`;
+    }
+
+    function renderStories(stories) {
+      if (!stories.length) {
+        grid.innerHTML = '';
+        return;
+      }
+      grid.innerHTML = stories.map(storyCardHTML).join('');
+    }
+
+    /* ============ APPLY FILTERS + RENDER ============ */
+    function applyAndRender() {
+      // Featured uses the latest published from loaded set, regardless of search
+      // (only when not searching, and there is at least one loaded story)
+      const showFeatured = !currentSearch && loadedStories.length > 0;
+      if (showFeatured) {
+        // The latest story = first in loadedStories (Firestore returned desc by publishedAt)
+        // But if user is in fallback mode after a category re-fetch, also pick the first.
+        renderFeatured(loadedStories[0]);
+      } else {
+        featuredBanner.hidden = true;
+      }
+
+      // Build the working set for the grid
+      let results = [...loadedStories];
+
+      // Search filter (title + excerpt)
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        results = results.filter(s =>
+          (s.title || '').toLowerCase().includes(q) ||
+          (s.excerpt || '').toLowerCase().includes(q)
+        );
+      }
+
+      // Sort
+      if (currentSort === 'mostread') {
+        results.sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
+      } else if (currentSort === 'oldest') {
+        results.sort((a, b) => getTime(a.publishedAt) - getTime(b.publishedAt));
+      } else {
+        // latest (default): keep Firestore order, which is publishedAt desc
+        results.sort((a, b) => getTime(b.publishedAt) - getTime(a.publishedAt));
+      }
+
+      // Skip the featured story in the grid
+      if (showFeatured && results.length > 0) {
+        const featuredId = loadedStories[0].id;
+        results = results.filter(s => s.id !== featuredId);
+      }
+
+      // Empty handling
+      if (!loadedStories.length) {
+        showEmptyState();
+        return;
+      }
+      if (currentSearch && !results.length) {
+        showNoResults();
+        return;
+      }
+      if (!results.length) {
+        // featured shown but nothing else
+        grid.innerHTML = `
+          <div class="state-block">
+            <p>That's the only story in this view right now.</p>
+          </div>`;
+      } else {
+        renderStories(results);
+      }
+
+      // Load More visibility
+      if (currentSearch || fallbackMode || allLoaded) {
+        loadMoreBtn.hidden = true;
+        endNote.hidden = !!(currentSearch || !loadedStories.length);
+      } else {
+        loadMoreBtn.hidden = false;
+        endNote.hidden = true;
+      }
+    }
+
+    /* ============ LOAD MORE STATE ============ */
+    function setLoadMoreLoading(loading) {
+      if (!loadMoreBtn) return;
+      if (loading) {
+        loadMoreBtn.disabled = true;
+        loadMoreBtn.innerHTML = `<span class="spinner"></span> Loading more stories...`;
+      } else {
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.innerHTML = `Load More`;
+      }
+    }
+
+    /* ============ FIRESTORE FETCH ============ */
+    async function fetchStories(reset = false) {
+      if (reset) {
+        lastDoc = null;
+        allLoaded = false;
+        loadedStories = [];
+        fallbackMode = false;
+        renderSkeletons();
+      }
+      if (allLoaded) return;
+
+      if (!firebaseReady) {
+        showEmptyState();
+        updateCount(0);
+        return;
+      }
+
+      setLoadMoreLoading(true);
+
+      try {
+        let query;
+        if (currentCategory === 'All') {
+          query = db.collection('stories')
+            .where('status', '==', 'published')
+            .orderBy('publishedAt', 'desc')
+            .limit(PAGE_SIZE);
+        } else {
+          query = db.collection('stories')
+            .where('status', '==', 'published')
+            .where('category', '==', currentCategory)
+            .orderBy('publishedAt', 'desc')
+            .limit(PAGE_SIZE);
+        }
+        if (lastDoc) query = query.startAfter(lastDoc);
+
+        const snap = await query.get();
+
+        if (snap.empty || snap.docs.length < PAGE_SIZE) {
+          allLoaded = true;
+        }
+        if (!snap.empty) {
+          lastDoc = snap.docs[snap.docs.length - 1];
+          const newStories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          loadedStories = [...loadedStories, ...newStories];
         }
 
-        // Scroll reveal
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('in');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: .08, rootMargin: '0px 0px -40px 0px' });
+        applyAndRender();
+        updateCount(loadedStories.length);
 
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    </script>
+      } catch (err) {
+        console.error('fetchStories error:', err);
+        const isIndexErr = err && (
+          err.code === 'failed-precondition' ||
+          /index/i.test(err.message || '') ||
+          /requires an index/i.test(err.message || '')
+        );
 
+        if (isIndexErr) {
+          // Fallback: simple where-only, sort client-side, no pagination
+          try {
+            let q2 = db.collection('stories').where('status', '==', 'published');
+            if (currentCategory !== 'All') {
+              q2 = q2.where('category', '==', currentCategory);
+            }
+            const snap = await q2.get();
+            const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            items.sort((a, b) => getTime(b.publishedAt) - getTime(a.publishedAt));
+            loadedStories = items;
+            allLoaded = true;
+            fallbackMode = true;
+            if (!loadedStories.length) {
+              showEmptyState();
+            } else {
+              applyAndRender();
+            }
+            updateCount(loadedStories.length);
+          } catch (e2) {
+            console.error('fallback fetchStories error:', e2);
+            if (loadedStories.length === 0) showErrorState();
+          }
+        } else {
+          if (loadedStories.length === 0) showErrorState();
+        }
+      } finally {
+        setLoadMoreLoading(false);
+      }
+    }
+
+    /* ============ COUNT PILL ============ */
+    function updateCount(visibleCount) {
+      // Try the live count(); fall back to current loaded count.
+      if (firebaseReady && db.collection('stories').where('status', '==', 'published').count) {
+        db.collection('stories').where('status', '==', 'published').count().get()
+          .then(snap => {
+            const n = snap.data().count;
+            countPill.textContent = `[ ${n} ${n === 1 ? 'Story' : 'Stories'} Published ]`;
+          })
+          .catch(() => {
+            countPill.textContent = `[ ${visibleCount}${allLoaded ? '' : '+'} Stories Published ]`;
+          });
+      } else {
+        countPill.textContent = `[ ${visibleCount}${allLoaded ? '' : '+'} Stories Published ]`;
+      }
+    }
+
+    /* ============ TRENDING ============ */
+    async function fetchTrending() {
+      if (!firebaseReady) {
+        renderTrendingEmpty();
+        return;
+      }
+      try {
+        const snap = await db.collection('trending').limit(4).get();
+        if (snap.empty) {
+          renderTrendingEmpty();
+          return;
+        }
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderTrending(items);
+      } catch (e) {
+        console.warn('fetchTrending error:', e);
+        renderTrendingEmpty();
+      }
+    }
+
+    function renderTrendingEmpty() {
+      trendingRow.innerHTML = `
+        <div class="trending-empty">No trending items yet. Check back soon.</div>`;
+    }
+
+    function renderTrending(items) {
+      if (!items || !items.length) {
+        renderTrendingEmpty();
+        return;
+      }
+      trendingRow.innerHTML = items.slice(0, 4).map((t, i) => {
+        const linkable = t.ref_id && (t.type !== 'video');
+        const tagName = linkable ? 'a' : 'article';
+        const hrefAttr = linkable
+          ? ` href="story.html?id=${encodeURIComponent(t.ref_id)}"`
+          : '';
+        const num = String(i + 1).padStart(2, '0');
+        const tag = t.tag || t.type || 'Trending';
+        const title = t.title || 'Untitled';
+        const reads = (Number(t.readCount) || 0).toLocaleString();
+        return `
+          <${tagName} class="trending-card"${hrefAttr}>
+            <div class="trending-num">${num}</div>
+            <div class="trending-tag">${escapeHtml(tag)}</div>
+            <div class="trending-card-title">${escapeHtml(title)}</div>
+            <div class="trending-count">${reads} reads</div>
+          </${tagName}>`;
+      }).join('');
+    }
+
+    /* ============ CATEGORY CHIPS ============ */
+    function setActiveChip(cat) {
+      chipsRoot.querySelectorAll('.chip').forEach(c => {
+        const isMatch = c.dataset.cat === cat;
+        c.classList.toggle('active', isMatch);
+        c.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+      });
+    }
+    chipsRoot.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const cat = chip.dataset.cat;
+        if (cat === currentCategory) return;
+        currentCategory = cat;
+        setActiveChip(cat);
+        // Reset search on category switch for predictability
+        currentSearch = '';
+        searchInput.value = '';
+        // Reflect category in URL (so refresh keeps state, deep-linkable)
+        const url = new URL(window.location.href);
+        if (cat === 'All') url.searchParams.delete('category');
+        else url.searchParams.set('category', cat);
+        history.replaceState(null, '', url.toString());
+        fetchStories(true);
+      });
+    });
+
+    /* ============ SORT ============ */
+    sortSelect.addEventListener('change', () => {
+      currentSort = sortSelect.value;
+      applyAndRender();
+    });
+
+    /* ============ SEARCH (debounced) ============ */
+    let searchTimer;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        currentSearch = searchInput.value.trim();
+        applyAndRender();
+      }, 300);
+    });
+
+    /* ============ LOAD MORE ============ */
+    loadMoreBtn.addEventListener('click', () => {
+      if (!allLoaded) fetchStories(false);
+    });
+
+    /* ============ URL PARAM SUPPORT ============ */
+    function checkURLParams() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const cat = params.get('category');
+        if (!cat) return;
+        // Validate the category against our chips
+        const valid = Array.from(chipsRoot.querySelectorAll('.chip'))
+          .map(c => c.dataset.cat);
+        if (valid.includes(cat)) {
+          currentCategory = cat;
+          setActiveChip(cat);
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    /* ============ SITE CONFIG (Footer) ============ */
+    async function loadSiteConfig() {
+      if (!firebaseReady) return;
+      try {
+        const footerDoc = await db.collection('siteConfig').doc('footer').get();
+        if (footerDoc.exists) {
+          const f = footerDoc.data();
+          if (f.email) {
+            const emailEl = $('footer-email');
+            if (emailEl) emailEl.textContent = f.email;
+          }
+          if (f.twitter) {
+            const tw = $('social-twitter');
+            if (tw) tw.href = f.twitter;
+          }
+          if (f.youtube) {
+            const yt = $('social-youtube');
+            if (yt) yt.href = f.youtube;
+          }
+          if (f.instagram) {
+            const ig = $('social-instagram');
+            if (ig) ig.href = f.instagram;
+          }
+        }
+      } catch (e) {
+        console.warn('siteConfig load failed:', e);
+      }
+    }
+
+    /* ============ KICK OFF ============ */
+    const copyYearEl = $('copy-year');
+    if (copyYearEl) copyYearEl.textContent = new Date().getFullYear();
+
+    checkURLParams();
+    loadSiteConfig();
+    fetchStories(true);
+    fetchTrending();
+  </script>
 </body>
 </html>
