@@ -147,15 +147,18 @@
       inset: 0;
       background: var(--bg-dark);
       z-index: 200;
-      display: none;
+      display: flex;          /* always flex; visibility via opacity/pointer-events */
       flex-direction: column;
       padding: 80px 32px 32px;
       opacity: 0;
-      transition: opacity 0.25s ease;
+      pointer-events: none;
+      transform: translateX(100%);
+      transition: opacity 0.25s ease, transform 0.3s ease;
     }
     .mobile-overlay.open {
-      display: flex;
       opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
     }
     .mobile-overlay .close {
       position: absolute;
@@ -296,7 +299,6 @@
       font-size: 11px;
       color: #E8E4DF;
       animation: marquee 40s linear infinite;
-      padding-left: 100%;
     }
     .ticker-track:hover .ticker-content { animation-play-state: paused; }
     .ticker-content span::after {
@@ -305,8 +307,8 @@
       margin-left: 32px;
     }
     @keyframes marquee {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
     /* ============ CATEGORY FILTER BAR ============ */
@@ -314,7 +316,7 @@
       background: var(--bg);
       border-bottom: 1px solid var(--border);
       position: sticky;
-      top: 60px;
+      top: 57px;
       z-index: 50;
       padding: 14px 0;
     }
@@ -776,16 +778,17 @@
       inset: 0;
       background: rgba(0,0,0,0.85);
       z-index: 1000;
-      display: none;
+      display: flex;          /* always flex; visibility via opacity/pointer-events */
       align-items: center;
       justify-content: center;
       padding: 20px;
       opacity: 0;
+      pointer-events: none;
       transition: opacity 0.25s ease;
     }
     .modal.open {
-      display: flex;
       opacity: 1;
+      pointer-events: auto;
     }
     .modal-box {
       background: var(--bg);
@@ -886,7 +889,7 @@
       .stats::-webkit-scrollbar { display: none; }
       .stat { flex: 0 0 auto; min-width: 140px; }
 
-      .filter-bar { top: 56px; padding: 12px 0; }
+      .filter-bar { top: 54px; padding: 12px 0; }
 
       .main-grid {
         grid-template-columns: 1fr;
@@ -934,14 +937,14 @@
     <div class="nav-inner">
       <a href="index.html" class="logo">WEVOX<span class="dot">.</span></a>
       <nav class="nav-links" aria-label="Primary">
-        <a href="stories.html">Stories</a>
-        <a href="youtube.html">Videos</a>
+        <a href="#stories">Stories</a>
+        <a href="#videos">Videos</a>
         <a href="#trending">Trending</a>
-        <a href="community.html">Community</a>
+        <a href="about.html">Community</a>
         <a href="about.html">About</a>
       </nav>
       <div style="display:flex;align-items:center;gap:12px;">
-        <a href="join.html" class="btn-submit">Submit Story</a>
+        <a href="submit.html" class="btn-submit">Submit Story</a>
         <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
       </div>
     </div>
@@ -950,12 +953,12 @@
   <!-- ============ MOBILE OVERLAY ============ -->
   <div class="mobile-overlay" id="mobileOverlay" aria-hidden="true">
     <button class="close" id="overlayClose" aria-label="Close menu">✕</button>
-    <a href="stories.html">Stories</a>
-    <a href="youtube.html">Videos</a>
+    <a href="#stories">Stories</a>
+    <a href="#videos">Videos</a>
     <a href="#trending">Trending</a>
-    <a href="community.html">Community</a>
+    <a href="about.html">Community</a>
     <a href="about.html">About</a>
-    <a href="join.html">Submit Story</a>
+    <a href="submit.html">Submit Story</a>
   </div>
 
   <!-- ============ IDENTITY STRIP ============ -->
@@ -963,15 +966,15 @@
     <div class="container">
       <div class="identity-grid">
         <div>
-          <div class="identity-label">India's Youth Newsroom • Est. 2024</div>
-          <h1>Student journalism. No filters.</h1>
+          <div class="identity-label" id="hero-eyebrow">India's Youth Newsroom • Est. 2024</div>
+          <h1 id="hero-headline">Student journalism. No filters.</h1>
           <div class="identity-divider"></div>
         </div>
         <div class="stats" aria-label="Network statistics">
-          <div class="stat"><div class="stat-number">5,000+</div><div class="stat-label">Reporters</div></div>
-          <div class="stat"><div class="stat-number">1.2M+</div><div class="stat-label">Readers</div></div>
-          <div class="stat"><div class="stat-number">200+</div><div class="stat-label">Colleges</div></div>
-          <div class="stat"><div class="stat-number">18+</div><div class="stat-label">States</div></div>
+          <div class="stat"><div class="stat-number" id="stat1-val">5,000+</div><div class="stat-label" id="stat1-lbl">Reporters</div></div>
+          <div class="stat"><div class="stat-number" id="stat2-val">1.2M+</div><div class="stat-label" id="stat2-lbl">Readers</div></div>
+          <div class="stat"><div class="stat-number" id="stat3-val">200+</div><div class="stat-label" id="stat3-lbl">Colleges</div></div>
+          <div class="stat"><div class="stat-number" id="stat4-val">18+</div><div class="stat-label" id="stat4-lbl">States</div></div>
         </div>
       </div>
     </div>
@@ -1008,10 +1011,10 @@
       <div class="main-grid">
 
         <!-- LEFT: STORIES -->
-        <section aria-labelledby="stories-heading">
+        <section id="stories" aria-labelledby="stories-heading">
           <div class="section-head">
             <h2 class="section-title" id="stories-heading">Stories</h2>
-            <a href="stories.html" class="view-all">View all →</a>
+            <a href="#stories" class="view-all">View all →</a>
           </div>
           <div class="stories-list" id="storiesList">
             <!-- Skeletons -->
@@ -1023,10 +1026,10 @@
         </section>
 
         <!-- RIGHT: VIDEOS -->
-        <aside aria-labelledby="videos-heading">
+        <aside id="videos" aria-labelledby="videos-heading">
           <div class="section-head">
             <h2 class="section-title" id="videos-heading">Field Reports</h2>
-            <a href="youtube.html" class="view-all">View all →</a>
+            <a href="#videos" class="view-all">View all →</a>
           </div>
           <div class="videos-list" id="videosList">
             <div class="video-card"><div class="skeleton sk-video-thumb"></div><div class="skeleton sk-line short"></div><div class="skeleton sk-line long"></div></div>
@@ -1044,7 +1047,7 @@
     <div class="container">
       <div class="section-head">
         <h2 class="section-title" id="trending-heading">Trending Now</h2>
-        <a href="stories.html" class="view-all">All trending →</a>
+        <a href="#stories" class="view-all">All trending →</a>
       </div>
       <div class="trending-row" id="trendingRow">
         <div class="trending-card"><div class="skeleton sk-line short"></div><div class="skeleton sk-line long" style="height:36px"></div><div class="skeleton sk-line short"></div></div>
@@ -1064,20 +1067,20 @@
           <div class="footer-logo">WEVOX<span style="color:var(--accent)">.</span></div>
           <p class="footer-tagline">Student journalism. No filters.</p>
           <div class="socials" aria-label="Social media">
-            <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24"><path d="M22 5.8c-.7.3-1.5.5-2.4.6.9-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1-.7-.8-1.8-1.3-3-1.3-2.3 0-4.1 1.8-4.1 4.1 0 .3 0 .6.1.9-3.4-.2-6.4-1.8-8.4-4.3-.4.6-.6 1.3-.6 2.1 0 1.4.7 2.7 1.8 3.4-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.7 3.3 4-.3.1-.7.1-1.1.1-.3 0-.5 0-.8-.1.5 1.6 2.1 2.8 3.9 2.9-1.4 1.1-3.2 1.8-5.2 1.8H2c1.8 1.2 4 1.9 6.3 1.9 7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.2z"/></svg></a>
-            <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23 12c0-2-.2-3.5-.4-4.4-.2-.6-.8-1.2-1.4-1.4C19.5 5.8 12 5.8 12 5.8s-7.5 0-9.2.4c-.6.2-1.2.8-1.4 1.4-.4 1.7-.4 5.4-.4 5.4s0 3.7.4 5.4c.2.6.8 1.2 1.4 1.4 1.7.4 9.2.4 9.2.4s7.5 0 9.2-.4c.6-.2 1.2-.8 1.4-1.4.2-.9.4-2.4.4-4.4zM9.6 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
-            <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.4.4 1 .4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.4.2-1 .4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 2c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.3.8-.4.4-.6.8-.8 1.3-.2.4-.3 1-.4 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.3.4.4.8.6 1.3.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.3-.8.4-.4.6-.8.8-1.3.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1-.2-.5-.4-.9-.8-1.3-.4-.4-.8-.6-1.3-.8-.4-.2-1-.3-2.1-.4-1.2-.1-1.6-.1-4.7-.1zm0 3.4a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 7.2a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6zm5.6-7.4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg></a>
+            <a id="social-twitter" href="#" aria-label="Twitter"><svg viewBox="0 0 24 24"><path d="M22 5.8c-.7.3-1.5.5-2.4.6.9-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1-.7-.8-1.8-1.3-3-1.3-2.3 0-4.1 1.8-4.1 4.1 0 .3 0 .6.1.9-3.4-.2-6.4-1.8-8.4-4.3-.4.6-.6 1.3-.6 2.1 0 1.4.7 2.7 1.8 3.4-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.7 3.3 4-.3.1-.7.1-1.1.1-.3 0-.5 0-.8-.1.5 1.6 2.1 2.8 3.9 2.9-1.4 1.1-3.2 1.8-5.2 1.8H2c1.8 1.2 4 1.9 6.3 1.9 7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.2z"/></svg></a>
+            <a id="social-youtube" href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23 12c0-2-.2-3.5-.4-4.4-.2-.6-.8-1.2-1.4-1.4C19.5 5.8 12 5.8 12 5.8s-7.5 0-9.2.4c-.6.2-1.2.8-1.4 1.4-.4 1.7-.4 5.4-.4 5.4s0 3.7.4 5.4c.2.6.8 1.2 1.4 1.4 1.7.4 9.2.4 9.2.4s7.5 0 9.2-.4c.6-.2 1.2-.8 1.4-1.4.2-.9.4-2.4.4-4.4zM9.6 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+            <a id="social-instagram" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.4.4 1 .4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.4.2-1 .4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 2c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.3.8-.4.4-.6.8-.8 1.3-.2.4-.3 1-.4 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.3.4.4.8.6 1.3.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.3-.8.4-.4.6-.8.8-1.3.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1-.2-.5-.4-.9-.8-1.3-.4-.4-.8-.6-1.3-.8-.4-.2-1-.3-2.1-.4-1.2-.1-1.6-.1-4.7-.1zm0 3.4a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 7.2a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6zm5.6-7.4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg></a>
           </div>
         </div>
         <div class="footer-col">
           <div class="footer-heading">Explore</div>
           <ul>
-            <li><a href="stories.html">Stories</a></li>
-            <li><a href="youtube.html">Videos</a></li>
+            <li><a href="#stories">Stories</a></li>
+            <li><a href="#videos">Videos</a></li>
             <li><a href="#trending">Trending</a></li>
-            <li><a href="community.html">Community</a></li>
+            <li><a href="about.html">Community</a></li>
             <li><a href="about.html">About</a></li>
-            <li><a href="join.html">Submit Story</a></li>
+            <li><a href="submit.html">Submit Story</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -1091,8 +1094,8 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <div>© 2024 WEVOX Network Platforms Inc.</div>
-        <div>contact@wevox.in</div>
+        <div>© <span id="copy-year">2024</span> WEVOX Network Platforms Inc.</div>
+        <div id="footer-email">contact@wevox.in</div>
       </div>
     </div>
   </footer>
@@ -1100,8 +1103,8 @@
   <!-- ============ FAB ============ -->
   <div class="fab-wrap" id="fabWrap">
     <div class="fab-options">
-      <a href="join.html?type=story" class="fab-option">📝 Write Story</a>
-      <a href="join.html?type=video" class="fab-option">🎥 Field Video</a>
+      <a href="submit.html?type=story" class="fab-option">📝 Write Story</a>
+      <a href="submit.html?type=video" class="fab-option">🎥 Field Video</a>
     </div>
     <button class="fab" id="fab" aria-label="Submit content" aria-expanded="false">+</button>
   </div>
@@ -1145,6 +1148,13 @@
       firebaseReady = true;
     } catch (err) {
       console.warn("Firebase init failed (placeholder config?):", err);
+      firebaseReady = false;
+    }
+
+    // Detect placeholder configs (e.g. apiKey starts with YOUR_) so we don't try to talk to Firestore
+    const isRealConfig = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('YOUR_');
+    if (!isRealConfig) {
+      console.warn('Firebase placeholder config detected — using demo data only');
       firebaseReady = false;
     }
 
@@ -1283,7 +1293,7 @@
         return;
       }
       list.innerHTML = filtered.map((s, i) => `
-        <a class="story-card stagger" href="${s.id ? 'story.html?id=' + encodeURIComponent(s.id) : '#'}" style="animation-delay:${i * 0.08}s">
+        <a class="story-card stagger" href="${s.id && !String(s.id).startsWith('demo-') ? 'story.html?id=' + encodeURIComponent(s.id) : '#'}" style="animation-delay:${i * 0.08}s">
           <img class="story-thumb" src="${escapeHtml(s.coverImage || placeholderImg('s' + (s.id || i)))}" alt="" loading="lazy"
                onerror="this.src='${placeholderImg('fallback' + i)}'" />
           <div class="story-body">
@@ -1483,7 +1493,58 @@
       renderTrending(docs);
     }
 
+    /* ============ SITE CONFIG (Hero + Footer from Firestore) ============ */
+    async function loadSiteConfig() {
+      if (!firebaseReady) return;
+      try {
+        // Load Hero
+        const heroDoc = await db.collection('siteConfig').doc('hero').get();
+        if (heroDoc.exists) {
+          const h = heroDoc.data();
+          if (h.eyebrow)    document.getElementById('hero-eyebrow').textContent  = h.eyebrow;
+          if (h.headline)   document.getElementById('hero-headline').textContent = h.headline;
+          if (h.stat1Value) document.getElementById('stat1-val').textContent     = h.stat1Value;
+          if (h.stat1Label) document.getElementById('stat1-lbl').textContent     = h.stat1Label;
+          if (h.stat2Value) document.getElementById('stat2-val').textContent     = h.stat2Value;
+          if (h.stat2Label) document.getElementById('stat2-lbl').textContent     = h.stat2Label;
+          if (h.stat3Value) document.getElementById('stat3-val').textContent     = h.stat3Value;
+          if (h.stat3Label) document.getElementById('stat3-lbl').textContent     = h.stat3Label;
+          if (h.stat4Value) document.getElementById('stat4-val').textContent     = h.stat4Value;
+          if (h.stat4Label) document.getElementById('stat4-lbl').textContent     = h.stat4Label;
+        }
+
+        // Load Footer
+        const footerDoc = await db.collection('siteConfig').doc('footer').get();
+        if (footerDoc.exists) {
+          const f = footerDoc.data();
+          if (f.email) {
+            const emailEl = document.getElementById('footer-email');
+            if (emailEl) emailEl.textContent = f.email;
+          }
+          if (f.twitter) {
+            const twEl = document.getElementById('social-twitter');
+            if (twEl) twEl.href = f.twitter;
+          }
+          if (f.youtube) {
+            const ytEl = document.getElementById('social-youtube');
+            if (ytEl) ytEl.href = f.youtube;
+          }
+          if (f.instagram) {
+            const igEl = document.getElementById('social-instagram');
+            if (igEl) igEl.href = f.instagram;
+          }
+        }
+      } catch (e) {
+        console.warn('siteConfig load failed:', e);
+      }
+    }
+
     /* ============ KICK OFF ============ */
+    // Dynamic copyright year
+    const copyYearEl = document.getElementById('copy-year');
+    if (copyYearEl) copyYearEl.textContent = new Date().getFullYear();
+
+    loadSiteConfig();
     fetchStories();
     fetchVideos();
     fetchTrending();
