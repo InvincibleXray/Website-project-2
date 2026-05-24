@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Submit your story or field video to WEVOX — India's youth newsroom. Verified student journalists publishing ground zero reports." />
+  <meta property="og:title" content="Submit Your Story — WEVOX" />
+  <meta property="og:description" content="Verified student journalists publishing ground zero reports. Submit your investigation, campus report, or field video." />
+  <meta property="og:type" content="website" />
+  <title>Submit Your Story — WEVOX</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============ DESIGN TOKENS (same as index.html) ============ */
+    :root {
+      --bg: #F9F7F4;
+      --bg-dark: #0D0D0D;
+      --surface: #FFFFFF;
+      --border: #E8E4DF;
+      --text-primary: #1A1A1A;
+      --text-secondary: #6B6B6B;
+      --text-muted: #9A9A9A;
+      --accent: #C8102E;
+      --accent-hover: #A50D26;
+      --tag-bg: #F0EDE8;
+      --input-bg: #FAFAF8;
+      --danger: #EF4444;
+      --success: #16A34A;
+
+      --font-headline: "Playfair Display", Georgia, serif;
+      --font-body: "DM Sans", system-ui, -apple-system, sans-serif;
+      --font-mono: "IBM Plex Mono", "Courier New", monospace;
+
+      --max-width: 1240px;
+      --gutter: 32px;
+    }
+
+    /* ============ RESET ============ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      font-weight: 400;
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input, textarea, select { font: inherit; color: inherit; }
+    img { max-width: 100%; display: block; }
+    ul { list-style: none; }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+
+    /* ============ NAVBAR (same as index.html) ============ */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      transition: box-shadow 0.25s ease, background 0.25s ease;
+      opacity: 0;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    .navbar.scrolled { box-shadow: 0 2px 14px rgba(0,0,0,0.05); }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 14px var(--gutter);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .logo {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 22px;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+    .logo .dot { color: var(--accent); }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      position: relative;
+      padding: 4px 0;
+      transition: color 0.2s ease;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links a.active { color: var(--text-primary); }
+    .nav-links a.active::after {
+      content: ""; position: absolute;
+      left: 0; right: 0; bottom: -4px;
+      height: 2px; background: var(--accent);
+    }
+    .btn-submit {
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s ease, transform 0.15s ease;
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .btn-submit:hover { background: var(--accent-hover); }
+    .btn-submit:active { transform: scale(0.97); }
+    .btn-submit.active { box-shadow: 0 0 0 2px rgba(200,16,46,0.25); }
+
+    .hamburger {
+      display: none;
+      width: 36px; height: 36px;
+      align-items: center; justify-content: center;
+      font-size: 22px;
+      color: var(--text-primary);
+    }
+
+    /* Mobile overlay */
+    .mobile-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-dark);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      padding: 80px 32px 32px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(100%);
+      transition: opacity 0.25s ease, transform 0.3s ease;
+    }
+    .mobile-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+    .mobile-overlay .close {
+      position: absolute;
+      top: 22px; right: 24px;
+      font-size: 28px;
+      color: #fff;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mobile-overlay a {
+      color: #fff;
+      font-family: var(--font-headline);
+      font-size: 32px;
+      font-weight: 700;
+      padding: 14px 0;
+      border-bottom: 1px solid #1f1f1f;
+      transition: color 0.2s ease;
+    }
+    .mobile-overlay a:hover { color: var(--accent); }
+
+    /* ============ HERO (minimal) ============ */
+    .hero {
+      padding: 120px 0 40px;
+      background: var(--bg);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUp 0.4s ease-out 0.1s forwards;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 36px;
+      line-height: 1.1;
+      color: var(--text-primary);
+      max-width: 720px;
+      letter-spacing: -0.5px;
+    }
+    .hero-sub {
+      font-family: var(--font-body);
+      font-weight: 300;
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin-top: 14px;
+    }
+    .hero-divider {
+      width: 40px;
+      height: 2px;
+      background: var(--accent);
+      margin-top: 24px;
+    }
+
+    /* ============ TYPE SELECTOR ============ */
+    .type-section {
+      padding: 8px 0 32px;
+    }
+    .type-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 680px;
+    }
+    .type-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .type-card:hover:not(.selected) {
+      border-color: rgba(200,16,46,0.25);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .type-card.selected {
+      border-color: var(--accent);
+      background: rgba(200,16,46,0.04);
+    }
+    .type-card .icon { font-size: 28px; line-height: 1; margin-bottom: 6px; }
+    .type-card .title {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .type-card .desc {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .type-card .check {
+      position: absolute;
+      top: 12px; right: 12px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .type-card.selected .check { display: flex; }
+
+    /* ============ FORM ============ */
+    .form-section {
+      padding: 8px 0 80px;
+    }
+    .form-wrap {
+      display: none;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .form-wrap.show {
+      display: block;
+      animation: formIn 0.4s ease forwards;
+    }
+    @keyframes formIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      margin-top: 8px;
+    }
+    .form-section-block { margin-bottom: 28px; }
+    .form-section-block:last-of-type { margin-bottom: 16px; }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .field label .req { color: var(--accent); margin-left: 2px; }
+    .field .helper {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .input, .textarea, .select {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    .input::placeholder, .textarea::placeholder {
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+    .input:focus, .textarea:focus, .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200,16,46,0.08);
+    }
+    .input.error, .textarea.error, .select.error {
+      border-color: var(--danger);
+    }
+    .select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%236B6B6B' d='M6 8L0 0h12z'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+    }
+    .textarea {
+      min-height: 320px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .textarea-short {
+      min-height: 200px;
+    }
+
+    .textarea-wrap { position: relative; }
+    .char-counter {
+      position: absolute;
+      right: 14px;
+      bottom: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--input-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    .char-counter.warn { color: var(--accent); font-weight: 600; }
+
+    /* Custom checkbox */
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .check-row input { display: none; }
+    .check-box {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-box::after {
+      content: "✓";
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .check-row input:checked ~ .check-box {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .check-row input:checked ~ .check-box::after {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .check-row.error .check-box {
+      border-color: var(--danger);
+    }
+    .check-row .check-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* Shake animation for invalid fields */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+
+    /* Submit button */
+    .btn-primary {
+      width: 100%;
+      height: 52px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      transition: background 0.2s, box-shadow 0.2s, opacity 0.2s, transform 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 20px rgba(200,16,46,0.3);
+    }
+    .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+    .btn-primary:disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Conditional fields */
+    .for-story, .for-video { display: none; }
+    .form-wrap[data-type="STORY"] .for-story { display: block; }
+    .form-wrap[data-type="VIDEO"] .for-video { display: block; }
+
+    /* ============ SUCCESS STATE ============ */
+    .success-wrap {
+      display: none;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 56px 40px;
+      text-align: center;
+    }
+    .success-wrap.show { display: block; animation: formIn 0.4s ease forwards; }
+
+    .success-check {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: rgba(22,163,74,0.12);
+      color: var(--success);
+      font-size: 44px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      transform: scale(0);
+    }
+    @keyframes pop {
+      0% { transform: scale(0); }
+      60% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .success-wrap h2 {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 28px;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .success-sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 440px;
+      margin: 0 auto 24px;
+      line-height: 1.6;
+    }
+    .info-box {
+      background: #FFF8E1;
+      border: 1px solid #F5E6B3;
+      border-radius: 10px;
+      padding: 18px 22px;
+      text-align: left;
+      margin-bottom: 28px;
+    }
+    .info-box strong {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+    .info-box p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .success-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-outline {
+      background: var(--surface);
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-outline:hover { background: rgba(200,16,46,0.06); }
+    .btn-filled {
+      background: var(--accent);
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-filled:hover { background: var(--accent-hover); }
+
+    /* ============ TOAST ============ */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--text-secondary);
+      padding: 14px 18px;
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      min-width: 260px;
+      max-width: 360px;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.10);
+      animation: slideInRight 0.3s ease forwards;
+      pointer-events: auto;
+    }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.success { border-left-color: var(--success); }
+    .toast.warning { border-left-color: #F59E0B; }
+    .toast.fade-out { animation: fadeOutRight 0.3s ease forwards; }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOutRight {
+      to { opacity: 0; transform: translateX(20px); }
+    }
+
+    /* ============ FOOTER (same as index.html) ============ */
+    footer {
+      background: var(--bg-dark);
+      color: #F9F7F4;
+      padding: 56px 0 0;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 48px;
+      padding-bottom: 40px;
+    }
+    .footer-logo {
+      font-family: var(--font-headline);
+      font-weight: 900;
+      font-size: 24px;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .footer-tagline {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .socials { display: flex; gap: 14px; }
+    .socials a {
+      width: 36px; height: 36px;
+      border: 1px solid #2a2a2a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .socials a:hover { border-color: var(--accent); background: var(--accent); }
+    .socials svg { width: 16px; height: 16px; fill: #fff; }
+    .footer-heading {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+    .footer-col ul li { margin-bottom: 10px; }
+    .footer-col a {
+      font-size: 14px;
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid #1c1c1c;
+      padding: 18px 0;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #4A4A4A;
+    }
+
+    /* ============ ANIMATIONS ============ */
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 768px) {
+      :root { --gutter: 20px; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .btn-submit { padding: 7px 14px; font-size: 12px; }
+
+      .hero { padding: 100px 0 28px; }
+      .hero h1 { font-size: 26px; }
+      .hero-sub { font-size: 15px; }
+
+      .type-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-wrap { padding: 24px 20px; border-radius: 12px; }
+      .success-wrap { padding: 40px 22px; border-radius: 12px; }
+      .textarea { min-height: 240px; }
+      .textarea-short { min-height: 180px; }
+
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 480px) {
+      .nav-inner { padding: 12px var(--gutter); }
+      .logo { font-size: 20px; }
+      .success-actions { flex-direction: column; }
+      .success-actions a, .success-actions button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAVBAR ============ -->
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">WEVOX<span class="dot">.</span></a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="stories.html">Stories</a>
+        <a href="index.html#videos">Videos</a>
+        <a href="index.html#trending">Trending</a>
+        <a href="community.html">Community</a>
+        <a href="about.html">About</a>
+      </nav>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a href="submit.html" class="btn-submit active">Submit Story</a>
+        <button class="hamburger" id="hamburger" aria-label="Open menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ MOBILE OVERLAY ============ -->
+  <div class="mobile-overlay" id="mobileOverlay" aria-hidden="true">
+    <button class="close" id="overlayClose" aria-label="Close menu">✕</button>
+    <a href="stories.html">Stories</a>
+    <a href="index.html#videos">Videos</a>
+    <a href="index.html#trending">Trending</a>
+    <a href="community.html">Community</a>
+    <a href="about.html">About</a>
+    <a href="submit.html">Submit Story</a>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">Submit Your Story</div>
+      <h1>Your voice. Their truth.</h1>
+      <p class="hero-sub">Verified student journalists publishing ground zero reports.</p>
+      <div class="hero-divider"></div>
+    </div>
+  </section>
+
+  <!-- ============ TYPE SELECTOR ============ -->
+  <section class="type-section">
+    <div class="container">
+      <div class="type-grid" id="typeGrid">
+        <button type="button" class="type-card" data-type="STORY" id="card-story">
+          <div class="check" aria-hidden="true">✓</div>
+          <div class="icon" aria-hidden="true">📝</div>
+          <div class="title">Write a Story</div>
+          <div class="desc">Investigative article, campus report, or opinion piece</div>
+        </button>
+        <button type="button" class="type-card" data-type="VIDEO" id="card-video">
+          <div class="check" aria-hidden="true">✓</div>
+          <div class="icon" aria-hidden="true">🎥</div>
+          <div class="title">Submit a Video</div>
+          <div class="desc">Field report, documentary, or video investigation</div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FORM ============ -->
+  <section class="form-section">
+    <div class="container">
+
+      <!-- FORM -->
+      <form class="form-wrap" id="submitForm" novalidate>
+
+        <!-- SECTION A — YOUR DETAILS -->
+        <div class="form-section-block">
+          <div class="section-label">Your Details</div>
+
+          <div class="field">
+            <label for="f-name">Full Name <span class="req">*</span></label>
+            <input type="text" class="input" id="f-name" name="authorName" placeholder="Ananya Krishnan" autocomplete="name" required />
+          </div>
+
+          <div class="field">
+            <label for="f-email">Email Address <span class="req">*</span></label>
+            <input type="email" class="input" id="f-email" name="email" placeholder="you@university.edu" autocomplete="email" required />
+          </div>
+
+          <div class="field">
+            <label for="f-phone">Phone Number <span class="req">*</span></label>
+            <input type="tel" class="input" id="f-phone" name="phone" placeholder="+91 98765 43210" autocomplete="tel" required />
+          </div>
+
+          <div class="field">
+            <label for="f-uni">University / College <span class="req">*</span></label>
+            <input type="text" class="input" id="f-uni" name="university" placeholder="Delhi University, North Campus" required />
+          </div>
+
+          <div class="field">
+            <label for="f-sid">Student ID <span style="color:var(--text-muted);font-weight:400;">(Optional)</span></label>
+            <input type="text" class="input" id="f-sid" name="studentId" placeholder="DU/2024/12345" />
+            <div class="helper">Optional but helps us verify faster</div>
+          </div>
+        </div>
+
+        <!-- SECTION B — YOUR CONTENT -->
+        <div class="form-section-block">
+          <div class="section-label">Your Content</div>
+
+          <!-- STORY FIELDS -->
+          <div class="for-story">
+            <div class="field">
+              <label for="f-title-story">Story Title <span class="req">*</span></label>
+              <input type="text" class="input" id="f-title-story" placeholder="The Hidden Fees Plaguing State University Hostels" />
+            </div>
+            <div class="field">
+              <label for="f-cat-story">Category <span class="req">*</span></label>
+              <select class="select" id="f-cat-story">
+                <option value="">Select Category</option>
+                <option value="Campus Fraud">Campus Fraud</option>
+                <option value="Economy">Economy</option>
+                <option value="Politics">Politics</option>
+                <option value="Culture">Culture</option>
+                <option value="Investigation">Investigation</option>
+                <option value="Field Reports">Field Reports</option>
+                <option value="Documentary">Documentary</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-img-story">Cover Image URL <span style="color:var(--text-muted);font-weight:400;">(Optional)</span></label>
+              <input type="url" class="input" id="f-img-story" placeholder="https://..." />
+              <div class="helper">Direct image link (Google Drive, ImgBB, etc)</div>
+            </div>
+            <div class="field">
+              <label for="f-content">Your Story <span class="req">*</span></label>
+              <div class="textarea-wrap">
+                <textarea class="textarea" id="f-content" maxlength="5000" placeholder="Write your full investigative report here. Include all facts, quotes, and evidence..."></textarea>
+                <div class="char-counter" id="char-counter"><span id="char-count">0</span> / 5000 characters</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIDEO FIELDS -->
+          <div class="for-video">
+            <div class="field">
+              <label for="f-title-video">Video Title <span class="req">*</span></label>
+              <input type="text" class="input" id="f-title-video" placeholder="The Silent Protest: Voices from the Midnight March" />
+            </div>
+            <div class="field">
+              <label for="f-cat-video">Category <span class="req">*</span></label>
+              <select class="select" id="f-cat-video">
+                <option value="">Select Category</option>
+                <option value="Campus Fraud">Campus Fraud</option>
+                <option value="Economy">Economy</option>
+                <option value="Politics">Politics</option>
+                <option value="Culture">Culture</option>
+                <option value="Investigation">Investigation</option>
+                <option value="Field Reports">Field Reports</option>
+                <option value="Documentary">Documentary</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-vidurl">YouTube / Drive Video Link <span class="req">*</span></label>
+              <input type="url" class="input" id="f-vidurl" placeholder="https://youtube.com/..." />
+              <div class="helper">Paste YouTube, Google Drive, or any public video link</div>
+            </div>
+            <div class="field">
+              <label for="f-img-video">Thumbnail URL <span style="color:var(--text-muted);font-weight:400;">(Optional)</span></label>
+              <input type="url" class="input" id="f-img-video" placeholder="https://..." />
+            </div>
+            <div class="field">
+              <label for="f-desc">Video Description <span class="req">*</span></label>
+              <textarea class="textarea textarea-short" id="f-desc" placeholder="Describe what your video covers, who was interviewed, and key findings..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION C — DECLARATION -->
+        <div class="form-section-block">
+          <div class="section-label">Declaration</div>
+
+          <label class="check-row" id="row-decl1">
+            <input type="checkbox" id="decl1" />
+            <span class="check-box" aria-hidden="true"></span>
+            <span class="check-text">I confirm this is my original reporting and all facts are verified to the best of my ability</span>
+          </label>
+
+          <label class="check-row" id="row-decl2">
+            <input type="checkbox" id="decl2" />
+            <span class="check-box" aria-hidden="true"></span>
+            <span class="check-text">I agree that WEVOX may publish, edit for clarity, and share this content across platforms</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-primary" id="btnSubmit">
+          <span id="btnText">Submit for Review →</span>
+        </button>
+      </form>
+
+      <!-- SUCCESS STATE -->
+      <div class="success-wrap" id="successWrap" aria-live="polite">
+        <div class="success-check" aria-hidden="true">✓</div>
+        <h2>Submitted Successfully!</h2>
+        <p class="success-sub">
+          Your submission is under review. We'll contact you at
+          <strong id="success-email" style="color:var(--text-primary);">your email</strong>
+          within 24-48 hours.
+        </p>
+        <div class="info-box">
+          <strong>📋 What happens next?</strong>
+          <p>Our editorial team will review your submission within 24 hours. If approved, it will be published with your byline on WEVOX.</p>
+        </div>
+        <div class="success-actions">
+          <a href="index.html" class="btn-outline">← Back to Home</a>
+          <button type="button" class="btn-filled" id="btnAnother">Submit Another</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-logo">WEVOX<span style="color:var(--accent)">.</span></div>
+          <p class="footer-tagline">Student journalism. No filters.</p>
+          <div class="socials" aria-label="Social media">
+            <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24"><path d="M22 5.8c-.7.3-1.5.5-2.4.6.9-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1-.7-.8-1.8-1.3-3-1.3-2.3 0-4.1 1.8-4.1 4.1 0 .3 0 .6.1.9-3.4-.2-6.4-1.8-8.4-4.3-.4.6-.6 1.3-.6 2.1 0 1.4.7 2.7 1.8 3.4-.7 0-1.3-.2-1.9-.5v.1c0 2 1.4 3.7 3.3 4-.3.1-.7.1-1.1.1-.3 0-.5 0-.8-.1.5 1.6 2.1 2.8 3.9 2.9-1.4 1.1-3.2 1.8-5.2 1.8H2c1.8 1.2 4 1.9 6.3 1.9 7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.2z"/></svg></a>
+            <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23 12c0-2-.2-3.5-.4-4.4-.2-.6-.8-1.2-1.4-1.4C19.5 5.8 12 5.8 12 5.8s-7.5 0-9.2.4c-.6.2-1.2.8-1.4 1.4-.4 1.7-.4 5.4-.4 5.4s0 3.7.4 5.4c.2.6.8 1.2 1.4 1.4 1.7.4 9.2.4 9.2.4s7.5 0 9.2-.4c.6-.2 1.2-.8 1.4-1.4.2-.9.4-2.4.4-4.4zM9.6 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>
+            <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.9.9 1.4.2.4.4 1 .4 2.2.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.9.7-1.4.9-.4.2-1 .4-2.2.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.9-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.9-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 2c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.3.8-.4.4-.6.8-.8 1.3-.2.4-.3 1-.4 2.1-.1 1.2-.1 1.6-.1 4.7s0 3.5.1 4.7c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.3.4.4.8.6 1.3.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.3-.8.4-.4.6-.8.8-1.3.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1-.2-.5-.4-.9-.8-1.3-.4-.4-.8-.6-1.3-.8-.4-.2-1-.3-2.1-.4-1.2-.1-1.6-.1-4.7-.1zm0 3.4a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 7.2a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6zm5.6-7.4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <div class="footer-heading">Explore</div>
+          <ul>
+            <li><a href="stories.html">Stories</a></li>
+            <li><a href="index.html#videos">Videos</a></li>
+            <li><a href="index.html#trending">Trending</a></li>
+            <li><a href="community.html">Community</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="submit.html">Submit Story</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <div class="footer-heading">Network</div>
+          <ul>
+            <li><a href="#">North Desk Hub</a></li>
+            <li><a href="#">Southern Grid Frontiers</a></li>
+            <li><a href="#">Verification Protocol Ledger</a></li>
+            <li><a href="#">Public Transparency Index</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div>© <span id="copy-year">2024</span> WEVOX Network Platforms Inc.</div>
+        <div>contact@wevox.in</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ TOAST CONTAINER ============ -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Firebase v9 Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // ==========================================
+    // FIREBASE CONFIG (same as admin.html)
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
+      authDomain: "cjnsite-d3f3f.firebaseapp.com",
+      projectId: "cjnsite-d3f3f",
+      storageBucket: "cjnsite-d3f3f.firebasestorage.app",
+      messagingSenderId: "491318197551",
+      appId: "1:491318197551:web:5a3c8fd938d94d924cf5da",
+      measurementId: "G-JES3G3L45V"
+    };
+
+    let db = null;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+    } catch (e) {
+      console.error("Firebase init error:", e);
+    }
+
+    // ==========================================
+    // DOM REFS
+    // ==========================================
+    const $ = (sel) => document.querySelector(sel);
+
+    const cardStory   = $('#card-story');
+    const cardVideo   = $('#card-video');
+    const formEl      = $('#submitForm');
+    const successWrap = $('#successWrap');
+    const btnSubmit   = $('#btnSubmit');
+    const btnText     = $('#btnText');
+    const btnAnother  = $('#btnAnother');
+
+    let selectedType = null; // 'STORY' | 'VIDEO'
+
+    // ==========================================
+    // NAVBAR — scroll shadow + mobile overlay
+    // ==========================================
+    const navbar = $('#navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 12) navbar.classList.add('scrolled');
+      else navbar.classList.remove('scrolled');
+    });
+
+    const hamburger = $('#hamburger');
+    const mobileOverlay = $('#mobileOverlay');
+    const overlayClose = $('#overlayClose');
+    hamburger.addEventListener('click', () => {
+      mobileOverlay.classList.add('open');
+      mobileOverlay.setAttribute('aria-hidden', 'false');
+    });
+    overlayClose.addEventListener('click', () => {
+      mobileOverlay.classList.remove('open');
+      mobileOverlay.setAttribute('aria-hidden', 'true');
+    });
+    mobileOverlay.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        mobileOverlay.classList.remove('open');
+        mobileOverlay.setAttribute('aria-hidden', 'true');
+      });
+    });
+
+    // Footer year
+    $('#copy-year').textContent = new Date().getFullYear();
+
+    // ==========================================
+    // TYPE SELECTOR
+    // ==========================================
+    function selectType(type) {
+      selectedType = type;
+      cardStory.classList.toggle('selected', type === 'STORY');
+      cardVideo.classList.toggle('selected', type === 'VIDEO');
+      formEl.dataset.type = type;
+      formEl.classList.add('show');
+
+      // Smooth scroll to the form on mobile selection
+      setTimeout(() => {
+        const top = formEl.getBoundingClientRect().top + window.scrollY - 80;
+        if (window.scrollY < top - 200) {
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      }, 60);
+    }
+
+    cardStory.addEventListener('click', () => selectType('STORY'));
+    cardVideo.addEventListener('click', () => selectType('VIDEO'));
+
+    // Pre-select via ?type=story|video query (used by FAB on index.html)
+    (function preselectFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const t = (params.get('type') || '').toLowerCase();
+      if (t === 'story') selectType('STORY');
+      else if (t === 'video') selectType('VIDEO');
+    })();
+
+    // ==========================================
+    // CHARACTER COUNTER (Story content)
+    // ==========================================
+    const contentEl = $('#f-content');
+    const charCount = $('#char-count');
+    const charCounter = $('#char-counter');
+    contentEl.addEventListener('input', () => {
+      const len = contentEl.value.length;
+      charCount.textContent = len;
+      if (len >= 4500) charCounter.classList.add('warn');
+      else charCounter.classList.remove('warn');
+    });
+
+    // ==========================================
+    // TOAST
+    // ==========================================
+    function toast(msg, type = 'info', duration = 3500) {
+      const container = $('#toast-container');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      container.appendChild(t);
+      setTimeout(() => {
+        t.classList.add('fade-out');
+        setTimeout(() => t.remove(), 300);
+      }, duration);
+    }
+
+    // ==========================================
+    // VALIDATION HELPERS
+    // ==========================================
+    function markError(el) {
+      if (!el) return;
+      el.classList.add('error', 'shake');
+      setTimeout(() => el.classList.remove('shake'), 450);
+    }
+    function clearErrors() {
+      formEl.querySelectorAll('.error').forEach(n => n.classList.remove('error'));
+    }
+    // Clear error on input
+    formEl.addEventListener('input', (e) => {
+      if (e.target.classList && e.target.classList.contains('error')) {
+        e.target.classList.remove('error');
+      }
+    });
+    formEl.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'decl1') {
+        $('#row-decl1').classList.toggle('error', !e.target.checked);
+      }
+      if (e.target && e.target.id === 'decl2') {
+        $('#row-decl2').classList.toggle('error', !e.target.checked);
+      }
+    });
+
+    function validate() {
+      clearErrors();
+      let firstInvalid = null;
+      const fail = (el) => {
+        markError(el);
+        if (!firstInvalid) firstInvalid = el;
+      };
+
+      // Required: details
+      const required = ['#f-name', '#f-email', '#f-phone', '#f-uni'];
+      required.forEach(sel => {
+        const el = $(sel);
+        if (!el.value.trim()) fail(el);
+      });
+
+      // Email basic format
+      const emailEl = $('#f-email');
+      if (emailEl.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())) {
+        fail(emailEl);
+      }
+
+      // Type-specific
+      if (selectedType === 'STORY') {
+        const titleEl = $('#f-title-story');
+        const catEl = $('#f-cat-story');
+        const contentEl2 = $('#f-content');
+        if (!titleEl.value.trim()) fail(titleEl);
+        if (!catEl.value) fail(catEl);
+        if (!contentEl2.value.trim()) fail(contentEl2);
+      } else if (selectedType === 'VIDEO') {
+        const titleEl = $('#f-title-video');
+        const catEl = $('#f-cat-video');
+        const urlEl = $('#f-vidurl');
+        const descEl = $('#f-desc');
+        if (!titleEl.value.trim()) fail(titleEl);
+        if (!catEl.value) fail(catEl);
+        if (!urlEl.value.trim()) fail(urlEl);
+        if (!descEl.value.trim()) fail(descEl);
+      }
+
+      // Declarations
+      const d1 = $('#decl1');
+      const d2 = $('#decl2');
+      if (!d1.checked) {
+        $('#row-decl1').classList.add('error');
+        if (!firstInvalid) firstInvalid = $('#row-decl1');
+      }
+      if (!d2.checked) {
+        $('#row-decl2').classList.add('error');
+        if (!firstInvalid) firstInvalid = $('#row-decl2');
+      }
+
+      if (firstInvalid) {
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (firstInvalid.focus) firstInvalid.focus({ preventScroll: true });
+        return false;
+      }
+      return true;
+    }
+
+    // ==========================================
+    // SUBMIT
+    // ==========================================
+    formEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!selectedType) {
+        toast('Please select a submission type first.', 'warning');
+        document.querySelector('.type-grid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      if (!validate()) {
+        toast('Please fill all required fields', 'error');
+        return;
+      }
+
+      // Offline check
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        toast('No connection detected. Check your internet.', 'error');
+        return;
+      }
+
+      // Build payload
+      const isStory = selectedType === 'STORY';
+      const payload = {
+        type: selectedType,
+        title: (isStory ? $('#f-title-story') : $('#f-title-video')).value.trim(),
+        category: (isStory ? $('#f-cat-story') : $('#f-cat-video')).value,
+        content: isStory ? $('#f-content').value.trim() : '',
+        videoUrl: isStory ? '' : $('#f-vidurl').value.trim(),
+        description: isStory ? '' : $('#f-desc').value.trim(),
+        imageUrl: (isStory ? $('#f-img-story') : $('#f-img-video')).value.trim(),
+        authorName: $('#f-name').value.trim(),
+        university: $('#f-uni').value.trim(),
+        email: $('#f-email').value.trim(),
+        phone: $('#f-phone').value.trim(),
+        studentId: $('#f-sid').value.trim(),
+        status: 'pending',
+        submittedAt: (firebase && firebase.firestore && firebase.firestore.FieldValue)
+          ? firebase.firestore.FieldValue.serverTimestamp()
+          : new Date()
+      };
+
+      // Loading state
+      btnSubmit.disabled = true;
+      btnText.innerHTML = '<span class="spinner" aria-hidden="true"></span> Submitting...';
+
+      try {
+        if (!db) throw new Error('Firestore not initialized');
+        await db.collection('submissions').add(payload);
+
+        // Success
+        $('#success-email').textContent = payload.email;
+        formEl.classList.remove('show');
+        formEl.style.display = 'none';
+        document.querySelector('.type-section').style.display = 'none';
+        successWrap.classList.add('show');
+        successWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        toast('Submission received!', 'success');
+      } catch (err) {
+        console.error('Submission failed:', err);
+        toast('Submission failed. Please try again.', 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        btnText.textContent = 'Submit for Review →';
+      }
+    });
+
+    // ==========================================
+    // SUBMIT ANOTHER → reset form
+    // ==========================================
+    btnAnother.addEventListener('click', () => {
+      formEl.reset();
+      clearErrors();
+      $('#row-decl1').classList.remove('error');
+      $('#row-decl2').classList.remove('error');
+      charCount.textContent = '0';
+      charCounter.classList.remove('warn');
+
+      // Reset type selection
+      selectedType = null;
+      cardStory.classList.remove('selected');
+      cardVideo.classList.remove('selected');
+      formEl.removeAttribute('data-type');
+      formEl.classList.remove('show');
+      formEl.style.display = '';
+
+      successWrap.classList.remove('show');
+      document.querySelector('.type-section').style.display = '';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Online/offline status
+    window.addEventListener('offline', () => {
+      toast('You are offline. Submissions will not work.', 'warning', 4000);
+    });
+  </script>
+</body>
+</html>
