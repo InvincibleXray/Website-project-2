@@ -500,6 +500,22 @@
                                 <div class="input-group"><label>Stat 1 Label</label><input type="text" id="set-s1l" class="form-control"></div>
                                 <div class="input-group"><label>Stat 2 Value</label><input type="text" id="set-s2v" class="form-control"></div>
                                 <div class="input-group"><label>Stat 2 Label</label><input type="text" id="set-s2l" class="form-control"></div>
+                                <div class="input-group">
+                                    <label>Stat 3 Value</label>
+                                    <input type="text" id="set-s3v" class="form-control">
+                                </div>
+                                <div class="input-group">
+                                    <label>Stat 3 Label</label>
+                                    <input type="text" id="set-s3l" class="form-control">
+                                </div>
+                                <div class="input-group">
+                                    <label>Stat 4 Value</label>
+                                    <input type="text" id="set-s4v" class="form-control">
+                                </div>
+                                <div class="input-group">
+                                    <label>Stat 4 Label</label>
+                                    <input type="text" id="set-s4l" class="form-control">
+                                </div>
                             </div>
                             <button class="btn-primary mt-3" onclick="saveConfig('hero')">Save Hero Config</button>
                         </div>
@@ -679,6 +695,11 @@
             document.getElementById('page-title').innerText = titles[id] || 'Dashboard';
             document.title = `${titles[id]} — WEVOX Admin`;
 
+            // Lazy-load settings from Firestore when the user opens the tab
+            if (id === 'settings' && typeof loadConfig === 'function') {
+                loadConfig();
+            }
+
             // Mobile hide sidebar
             if(window.innerWidth <= 768) toggleSidebar();
         }
@@ -733,6 +754,19 @@
             return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
         }
 
+        // Centralized Firestore error handler — surfaces actionable messages
+        function handleFirestoreError(e, where) {
+            console.error(`[${where}] Firestore error:`, e);
+            const msg = (e && e.message) ? e.message : String(e);
+            if (e && (e.code === 'failed-precondition' || /requires an index/i.test(msg))) {
+                showToast("Firestore index needed. Check browser console for the index link.", "error");
+            } else if (e && e.code === 'permission-denied') {
+                showToast("Permission denied. Check Firestore security rules.", "error");
+            } else {
+                showToast(`${where} failed: ${msg}`, "error");
+            }
+        }
+
         // ==========================================
         // 4. DATA FETCHING & RENDERING
         // ==========================================
@@ -772,8 +806,30 @@
 
         // --- PENDING SUBMISSIONS ---
         async function fetchPending() {
-            const snap = await db.collection('submissions').where('status','==','pending').orderBy('submittedAt','desc').get();
-            state.pending = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            try {
+                let snap;
+                try {
+                    snap = await db.collection('submissions').where('status','==','pending').orderBy('submittedAt','desc').get();
+                } catch (idxErr) {
+                    if (idxErr && (idxErr.code === 'failed-precondition' || /requires an index/i.test(idxErr.message || ''))) {
+                        console.warn('[fetchPending] Composite index missing, falling back to client-side sort. Original error:', idxErr);
+                        showToast("Firestore index needed. Check browser console for the index link.", "error");
+                        snap = await db.collection('submissions').where('status','==','pending').get();
+                    } else {
+                        throw idxErr;
+                    }
+                }
+                state.pending = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                // Client-side sort by submittedAt desc (defensive)
+                state.pending.sort((a,b) => {
+                    const ta = a.submittedAt && a.submittedAt.toMillis ? a.submittedAt.toMillis() : 0;
+                    const tb = b.submittedAt && b.submittedAt.toMillis ? b.submittedAt.toMillis() : 0;
+                    return tb - ta;
+                });
+            } catch (e) {
+                handleFirestoreError(e, 'fetchPending');
+                state.pending = [];
+            }
             renderPending();
             
             // Render recent on dashboard
@@ -900,10 +956,33 @@
 
         // --- STORIES & VIDEOS ---
         async function fetchStories() {
-            const snap = await db.collection('stories').where('status','==','published').orderBy('publishedAt','desc').get();
-            state.stories = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            
             const tbody = document.getElementById('table-stories');
+            try {
+                let snap;
+                try {
+                    snap = await db.collection('stories').where('status','==','published').orderBy('publishedAt','desc').get();
+                } catch (idxErr) {
+                    if (idxErr && (idxErr.code === 'failed-precondition' || /requires an index/i.test(idxErr.message || ''))) {
+                        console.warn('[fetchStories] Composite index missing, falling back to client-side sort. Original error:', idxErr);
+                        showToast("Firestore index needed. Check browser console for the index link.", "error");
+                        snap = await db.collection('stories').where('status','==','published').get();
+                    } else {
+                        throw idxErr;
+                    }
+                }
+                state.stories = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                state.stories.sort((a,b) => {
+                    const ta = a.publishedAt && a.publishedAt.toMillis ? a.publishedAt.toMillis() : 0;
+                    const tb = b.publishedAt && b.publishedAt.toMillis ? b.publishedAt.toMillis() : 0;
+                    return tb - ta;
+                });
+            } catch (e) {
+                handleFirestoreError(e, 'fetchStories');
+                state.stories = [];
+                tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Could not load stories.</td></tr>`;
+                return;
+            }
+
             if(state.stories.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No stories published yet.</td></tr>`;
                 return;
@@ -918,17 +997,41 @@
                     <td><span class="badge badge-soft-red">${s.category}</span></td>
                     <td class="font-mono text-muted">${formatDate(s.publishedAt)}</td>
                     <td class="table-actions">
-                        <button onclick="deleteDoc('stories', '${s.id}', fetchStories)">🗑️</button>
+                        <button title="Edit" onclick="openEditModal('stories','${s.id}')">✏️</button>
+                        <button title="Delete" onclick="deleteDoc('stories', '${s.id}', fetchStories)">🗑️</button>
                     </td>
                 </tr>
             `).join('');
         }
 
         async function fetchVideos() {
-            const snap = await db.collection('videos').where('status','==','published').orderBy('publishedAt','desc').get();
-            state.videos = snap.docs.map(d => ({id: d.id, ...d.data()}));
-            
             const tbody = document.getElementById('table-videos');
+            try {
+                let snap;
+                try {
+                    snap = await db.collection('videos').where('status','==','published').orderBy('publishedAt','desc').get();
+                } catch (idxErr) {
+                    if (idxErr && (idxErr.code === 'failed-precondition' || /requires an index/i.test(idxErr.message || ''))) {
+                        console.warn('[fetchVideos] Composite index missing, falling back to client-side sort. Original error:', idxErr);
+                        showToast("Firestore index needed. Check browser console for the index link.", "error");
+                        snap = await db.collection('videos').where('status','==','published').get();
+                    } else {
+                        throw idxErr;
+                    }
+                }
+                state.videos = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                state.videos.sort((a,b) => {
+                    const ta = a.publishedAt && a.publishedAt.toMillis ? a.publishedAt.toMillis() : 0;
+                    const tb = b.publishedAt && b.publishedAt.toMillis ? b.publishedAt.toMillis() : 0;
+                    return tb - ta;
+                });
+            } catch (e) {
+                handleFirestoreError(e, 'fetchVideos');
+                state.videos = [];
+                tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Could not load videos.</td></tr>`;
+                return;
+            }
+
             if(state.videos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No videos published yet.</td></tr>`;
                 return;
@@ -943,7 +1046,8 @@
                     <td><span class="badge badge-soft-red">${v.category}</span></td>
                     <td class="font-mono text-muted">${v.duration || '--'}</td>
                     <td class="table-actions">
-                        <button onclick="deleteDoc('videos', '${v.id}', fetchVideos)">🗑️</button>
+                        <button title="Edit" onclick="openEditModal('videos','${v.id}')">✏️</button>
+                        <button title="Delete" onclick="deleteDoc('videos', '${v.id}', fetchVideos)">🗑️</button>
                     </td>
                 </tr>
             `).join('');
@@ -958,6 +1062,96 @@
                     updateStats();
                 } catch(e) { showToast("Delete failed", "error"); }
             });
+        }
+
+        // --- EDIT (Stories & Videos) ---
+        async function openEditModal(type, id) {
+            // type: 'stories' | 'videos'
+            try {
+                const docRef = db.collection(type).doc(id);
+                const docSnap = await docRef.get();
+                if (!docSnap.exists) return showToast("Item not found", "error");
+                const d = docSnap.data();
+                const catOptions = categories.map(c =>
+                    `<option value="${c}" ${c === d.category ? 'selected' : ''}>${c}</option>`
+                ).join('');
+
+                const isStory = (type === 'stories');
+                const html = `
+                    <div class="input-group"><label>Title</label>
+                        <input type="text" id="edit-title" class="form-control" value="${(d.title || '').replace(/"/g,'&quot;')}">
+                    </div>
+                    <div class="input-group"><label>Author</label>
+                        <input type="text" id="edit-author" class="form-control" value="${(d.author || '').replace(/"/g,'&quot;')}">
+                    </div>
+                    <div class="input-group"><label>Category</label>
+                        <select id="edit-category" class="form-control">
+                            <option value="">Select category</option>
+                            ${catOptions}
+                        </select>
+                    </div>
+                    ${isStory ? `
+                        <div class="input-group"><label>Cover Image URL</label>
+                            <input type="text" id="edit-image" class="form-control font-mono" value="${(d.coverImage || '').replace(/"/g,'&quot;')}">
+                        </div>
+                        <div class="input-group"><label>Content</label>
+                            <textarea id="edit-content" class="form-control" rows="6">${d.content || ''}</textarea>
+                        </div>
+                        <div class="input-group"><label>Read Time</label>
+                            <input type="text" id="edit-readtime" class="form-control font-mono" value="${(d.readTime || '5 min read').replace(/"/g,'&quot;')}">
+                        </div>
+                    ` : `
+                        <div class="input-group"><label>Thumbnail URL</label>
+                            <input type="text" id="edit-image" class="form-control font-mono" value="${(d.thumbnailUrl || '').replace(/"/g,'&quot;')}">
+                        </div>
+                        <div class="input-group"><label>Video URL</label>
+                            <input type="text" id="edit-videourl" class="form-control font-mono" value="${(d.videoUrl || '').replace(/"/g,'&quot;')}">
+                        </div>
+                        <div class="input-group"><label>Description</label>
+                            <textarea id="edit-content" class="form-control" rows="4">${d.description || ''}</textarea>
+                        </div>
+                        <div class="input-group"><label>Duration (e.g. 04:32)</label>
+                            <input type="text" id="edit-duration" class="form-control font-mono" value="${(d.duration || '').replace(/"/g,'&quot;')}">
+                        </div>
+                    `}
+                    <button class="btn-primary" style="width:100%" onclick="saveEdit('${type}','${id}')">Save Changes</button>
+                `;
+                openModal(`Edit ${isStory ? 'Story' : 'Video'}`, html);
+            } catch (e) {
+                handleFirestoreError(e, 'openEditModal');
+            }
+        }
+
+        async function saveEdit(type, id) {
+            const isStory = (type === 'stories');
+            const title = document.getElementById('edit-title').value.trim();
+            const author = document.getElementById('edit-author').value.trim();
+            const category = document.getElementById('edit-category').value;
+            if (!title || !author || !category) {
+                return showToast("Title, author and category are required", "error");
+            }
+
+            const update = { title, author, category };
+            if (isStory) {
+                update.coverImage = document.getElementById('edit-image').value.trim();
+                update.content = document.getElementById('edit-content').value;
+                update.readTime = document.getElementById('edit-readtime').value.trim();
+            } else {
+                update.thumbnailUrl = document.getElementById('edit-image').value.trim();
+                update.videoUrl = document.getElementById('edit-videourl').value.trim();
+                update.description = document.getElementById('edit-content').value;
+                update.duration = document.getElementById('edit-duration').value.trim();
+            }
+            update.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+            try {
+                await db.collection(type).doc(id).update(update);
+                closeModal();
+                showToast("Updated successfully", "success");
+                if (isStory) fetchStories(); else fetchVideos();
+            } catch (e) {
+                handleFirestoreError(e, 'saveEdit');
+            }
         }
 
         // --- TRENDING ---
@@ -1005,12 +1199,75 @@
             } catch(e) { showToast("Error saving", "error"); }
         }
 
-        // --- EDITOR PICKS, CREATORS, CONTACTS (Simplified for length, maintaining structure) ---
+        // --- EDITOR PICKS ---
         async function fetchPicks() {
-            // Implementation matches trending logic
+            const list = document.getElementById('picks-list');
+            try {
+                const snap = await db.collection('editorPicks').get();
+                state.picks = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            } catch (e) {
+                handleFirestoreError(e, 'fetchPicks');
+                state.picks = [];
+                if (list) list.innerHTML = `<div class="empty-state">Could not load editor's picks.</div>`;
+                return;
+            }
+
+            if (!list) return;
+            if (state.picks.length === 0) {
+                list.innerHTML = `<div class="empty-state">No editor's picks yet.</div>`;
+                return;
+            }
+
+            list.innerHTML = state.picks.map((p, i) => `
+                <div class="flex-between" style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                    <div class="flex-gap">
+                        ${p.thumbnailUrl ? `<img src="${p.thumbnailUrl}" class="table-thumb" style="width:56px; height:42px;">` : `<span class="font-head text-accent" style="font-size:24px; opacity:0.5;">0${i+1}</span>`}
+                        <div>
+                            <div style="font-size:14px; font-weight:500;">${p.title || 'Untitled'}</div>
+                            <div class="font-mono text-muted" style="font-size:11px;">${p.category || '—'} • By ${p.author || 'Unknown'}</div>
+                        </div>
+                    </div>
+                    <div class="flex-gap">
+                        ${p.link ? `<a href="${p.link}" target="_blank" class="font-mono" style="color:var(--info); font-size:12px;">↗</a>` : ''}
+                        <button class="btn-danger-outline" style="border:none; padding:4px;" onclick="deleteDoc('editorPicks', '${p.id}', fetchPicks)">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
         }
-        function openPickModal() { showToast("Modal opened", "info"); }
-        
+
+        function openPickModal() {
+            if (state.picks.length >= 4) return showToast("Max 4 editor's picks allowed. Delete one first.", "warning");
+            const html = `
+                <div class="input-group"><label>Title</label><input type="text" id="pk-title" class="form-control"></div>
+                <div class="input-group"><label>Category</label><input type="text" id="pk-category" class="form-control font-mono"></div>
+                <div class="input-group"><label>Author</label><input type="text" id="pk-author" class="form-control"></div>
+                <div class="input-group"><label>Link (story URL)</label><input type="text" id="pk-link" class="form-control font-mono"></div>
+                <div class="input-group"><label>Thumbnail URL</label><input type="text" id="pk-thumb" class="form-control font-mono"></div>
+                <button class="btn-primary" style="width:100%" onclick="savePick()">Add Editor's Pick</button>
+            `;
+            openModal("Add Editor's Pick", html);
+        }
+
+        async function savePick() {
+            const title = document.getElementById('pk-title').value.trim();
+            const category = document.getElementById('pk-category').value.trim();
+            const author = document.getElementById('pk-author').value.trim();
+            const link = document.getElementById('pk-link').value.trim();
+            const thumbnailUrl = document.getElementById('pk-thumb').value.trim();
+            if (!title || !category) return showToast("Title and Category required", "error");
+            try {
+                await db.collection('editorPicks').add({
+                    title, category, author, link, thumbnailUrl,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("Editor's pick added", "success");
+                closeModal();
+                fetchPicks();
+            } catch (e) {
+                handleFirestoreError(e, 'savePick');
+            }
+        }
+
         async function fetchCreators() {
             const snap = await db.collection('creators').get();
             state.creators = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -1039,28 +1296,138 @@
         }
 
         async function fetchContacts() {
-            const snap = await db.collection('contacts').orderBy('createdAt','desc').get();
-            state.contacts = snap.docs.map(d => ({id: d.id, ...d.data()}));
             const list = document.getElementById('contacts-list');
-            list.innerHTML = state.contacts.map(c => `
+            try {
+                let snap;
+                try {
+                    snap = await db.collection('contacts').orderBy('createdAt','desc').get();
+                } catch (idxErr) {
+                    // Field may not exist on older docs OR composite index may be missing
+                    if (idxErr && (idxErr.code === 'failed-precondition' || /requires an index/i.test(idxErr.message || ''))) {
+                        console.warn('[fetchContacts] orderBy failed, falling back to client-side sort. Original error:', idxErr);
+                        showToast("Firestore index needed. Check browser console for the index link.", "error");
+                    } else {
+                        console.warn('[fetchContacts] orderBy(createdAt) failed, fetching without sort. Original error:', idxErr);
+                    }
+                    snap = await db.collection('contacts').get();
+                }
+                state.contacts = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                // Defensive sort — handles missing createdAt gracefully (treated as 0/oldest)
+                state.contacts.sort((a, b) => {
+                    const ta = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+                    const tb = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+                    return tb - ta;
+                });
+            } catch (e) {
+                handleFirestoreError(e, 'fetchContacts');
+                state.contacts = [];
+                if (list) list.innerHTML = `<div class="empty-state">Could not load messages.</div>`;
+                return;
+            }
+
+            list.innerHTML = state.contacts.map(c => {
+                const dateLabel = c.createdAt ? formatDate(c.createdAt) : '—';
+                return `
                 <div class="content-card" style="padding:16px; margin-bottom:8px; opacity: ${c.read ? '0.6' : '1'}">
                     <div class="flex-between">
                         <div class="flex-gap">
                             ${!c.read ? '<div style="width:8px; height:8px; border-radius:50%; background:var(--info);"></div>' : ''}
-                            <span style="font-weight:600; color:white;">${c.name}</span>
-                            <span class="font-mono text-muted" style="font-size:11px;">${c.email}</span>
+                            <span style="font-weight:600; color:white;">${c.name || 'Anonymous'}</span>
+                            <span class="font-mono text-muted" style="font-size:11px;">${c.email || ''}</span>
+                            <span class="font-mono text-muted" style="font-size:11px;">${dateLabel}</span>
                         </div>
-                        <button class="btn-secondary" style="padding:4px 8px;" onclick="deleteDoc('contacts','${c.id}',fetchContacts)">Delete</button>
+                        <div class="flex-gap">
+                            ${!c.read ? `<button class="btn-success" style="padding:4px 10px; font-size:12px;" onclick="markContactRead('${c.id}')">✓ Mark as Read</button>` : ''}
+                            <button class="btn-secondary" style="padding:4px 8px;" onclick="deleteDoc('contacts','${c.id}',fetchContacts)">Delete</button>
+                        </div>
                     </div>
-                    <div class="text-secondary" style="font-size:13px; margin-top:8px;">${c.message}</div>
+                    <div class="text-secondary" style="font-size:13px; margin-top:8px;">${c.message || ''}</div>
                 </div>
-            `).join('') || `<div class="empty-state">Inbox empty.</div>`;
+                `;
+            }).join('') || `<div class="empty-state">Inbox empty.</div>`;
+        }
+
+        async function markContactRead(id) {
+            try {
+                await db.collection('contacts').doc(id).update({
+                    read: true,
+                    readAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("Marked as read", "success");
+                await fetchContacts();
+                updateStats();
+            } catch (e) {
+                handleFirestoreError(e, 'markContactRead');
+            }
         }
 
         async function saveConfig(docId) {
-            showToast(`Saving ${docId} config...`, "info");
-            // Real implementation would gather inputs and db.collection('siteConfig').doc(docId).set(...)
-            setTimeout(() => showToast("Settings saved successfully", "success"), 500);
+            if (!db) return showToast("Firebase not connected", "error");
+            const user = firebase.auth().currentUser;
+            if (!user) return showToast("Not authenticated", "error");
+
+            let data = {};
+
+            if (docId === 'hero') {
+                data = {
+                    eyebrow: document.getElementById('set-eyebrow').value,
+                    headline: document.getElementById('set-headline').value,
+                    stat1Value: document.getElementById('set-s1v').value,
+                    stat1Label: document.getElementById('set-s1l').value,
+                    stat2Value: document.getElementById('set-s2v').value,
+                    stat2Label: document.getElementById('set-s2l').value,
+                    stat3Value: document.getElementById('set-s3v').value,
+                    stat3Label: document.getElementById('set-s3l').value,
+                    stat4Value: document.getElementById('set-s4v').value,
+                    stat4Label: document.getElementById('set-s4l').value,
+                };
+            } else if (docId === 'footer') {
+                data = {
+                    email: document.getElementById('set-email').value,
+                    twitter: document.getElementById('set-tw').value,
+                    youtube: document.getElementById('set-yt').value,
+                    instagram: document.getElementById('set-ig').value,
+                };
+            }
+
+            try {
+                await db.collection('siteConfig').doc(docId).set(data);
+                showToast("Saved successfully!", "success");
+            } catch (e) {
+                console.error(e);
+                showToast("Save failed: " + e.message, "error");
+            }
+        }
+
+        async function loadConfig() {
+            if (!db) return;
+            try {
+                const heroDoc = await db.collection('siteConfig').doc('hero').get();
+                if (heroDoc.exists) {
+                    const d = heroDoc.data();
+                    document.getElementById('set-eyebrow').value = d.eyebrow || '';
+                    document.getElementById('set-headline').value = d.headline || '';
+                    document.getElementById('set-s1v').value = d.stat1Value || '';
+                    document.getElementById('set-s1l').value = d.stat1Label || '';
+                    document.getElementById('set-s2v').value = d.stat2Value || '';
+                    document.getElementById('set-s2l').value = d.stat2Label || '';
+                    document.getElementById('set-s3v').value = d.stat3Value || '';
+                    document.getElementById('set-s3l').value = d.stat3Label || '';
+                    document.getElementById('set-s4v').value = d.stat4Value || '';
+                    document.getElementById('set-s4l').value = d.stat4Label || '';
+                }
+
+                const footerDoc = await db.collection('siteConfig').doc('footer').get();
+                if (footerDoc.exists) {
+                    const d = footerDoc.data();
+                    document.getElementById('set-email').value = d.email || '';
+                    document.getElementById('set-tw').value = d.twitter || '';
+                    document.getElementById('set-yt').value = d.youtube || '';
+                    document.getElementById('set-ig').value = d.instagram || '';
+                }
+            } catch (e) {
+                console.error('Load config error:', e);
+            }
         }
 
         function renderEmptyStates() {
