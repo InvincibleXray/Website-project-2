@@ -888,6 +888,111 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <script>
+    /* ============ YOUTUBE CONFIG ============ */
+    const YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY";
+    const YOUTUBE_CHANNEL_ID = "YOUR_CHANNEL_ID";
+
+    /* ============ YOUTUBE UTILITY FUNCTIONS ============ */
+    function parseDuration(iso) {
+      if (!iso) return '';
+      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!m) return '';
+      const h = parseInt(m[1]||0);
+      const min = parseInt(m[2]||0);
+      const sec = parseInt(m[3]||0);
+      const ss = sec.toString().padStart(2,'0');
+      if (h > 0) {
+        return `${h}:${min.toString().padStart(2,'0')}:${ss}`;
+      }
+      return `${min}:${ss}`;
+    }
+
+    function formatViews(n) {
+      n = Number(n)||0;
+      if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M views';
+      if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K views';
+      return n + ' views';
+    }
+
+    function getThumb(youtubeId, quality) {
+      return `https://img.youtube.com/vi/${youtubeId}/${quality||'hqdefault'}.jpg`;
+    }
+
+    function getEmbed(youtubeId) {
+      return `https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1`;
+    }
+
+    function timeAgo(dateStr) {
+      const d = new Date(dateStr);
+      const diff = new Date() - d;
+      const days = Math.floor(diff/(1000*60*60*24));
+      if (days === 0) return 'Today';
+      if (days === 1) return '1d ago';
+      if (days < 30) return days + 'd ago';
+      if (days < 365) return Math.floor(days/30) + 'mo ago';
+      return Math.floor(days/365) + 'y ago';
+    }
+
+    /* ============ YOUTUBE FETCH FUNCTIONS ============ */
+    async function fetchChannelVideos(maxResults) {
+      maxResults = maxResults || 50;
+      try {
+        const chRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?id=${YOUTUBE_CHANNEL_ID}&part=contentDetails,statistics&key=${YOUTUBE_API_KEY}`
+        );
+        const chData = await chRes.json();
+        if (!chData.items?.length) throw new Error('Channel not found');
+        const uploadsId = chData.items[0].contentDetails.relatedPlaylists.uploads;
+
+        const plRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/playlistItems?playlistId=${uploadsId}&part=contentDetails&maxResults=${maxResults}&key=${YOUTUBE_API_KEY}`
+        );
+        const plData = await plRes.json();
+        if (!plData.items?.length) return [];
+
+        const videoIds = plData.items.map(i => i.contentDetails.videoId).join(',');
+        const vRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?id=${videoIds}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`
+        );
+        const vData = await vRes.json();
+
+        return vData.items.map(item => ({
+          youtubeId: item.id,
+          title: item.snippet.title,
+          description: item.snippet.description.substring(0, 300),
+          thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url,
+          duration: parseDuration(item.contentDetails.duration),
+          views: parseInt(item.statistics.viewCount || 0),
+          likes: parseInt(item.statistics.likeCount || 0),
+          publishedAt: item.snippet.publishedAt,
+          channelTitle: item.snippet.channelTitle
+        }));
+      } catch(err) {
+        console.error('[WEVOX] YouTube fetch error:', err);
+        return [];
+      }
+    }
+
+    async function getCuratedCategories() {
+      if (!firebaseReady) return [];
+      try {
+        const snap = await db.collection('videoCategories').orderBy('order','asc').get();
+        if (snap.empty) return [];
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function matchVideos(categoryVideoIds, allVideos) {
+      return (categoryVideoIds || [])
+        .map(cv => {
+          const v = allVideos.find(x => x.youtubeId === cv.youtubeId);
+          return v ? { ...v, adminNote: cv.note || '' } : null;
+        })
+        .filter(Boolean);
+    }
+
     /* ============ FIREBASE CONFIG (same as index.html) ============ */
     const firebaseConfig = {
       apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
@@ -916,14 +1021,8 @@
     }
 
     /* ============ STATE ============ */
-    const PAGE_SIZE = 9;
-    let lastDoc = null;
-    let allLoaded = false;
-    let currentCategory = 'All';
-    let currentSearch = '';
-    let loadedVideos = [];
-    let fallbackMode = false;
-    let featuredRendered = false;
+    let allVideos = [];
+    let categories = [];
 
     /* ============ DOM REFS ============ */
     const $ = (id) => document.getElementById(id);
@@ -931,11 +1030,6 @@
     const hamburger = $('hamburger');
     const mobileOverlay = $('mobileOverlay');
     const overlayClose = $('overlayClose');
-    const grid = $('videosGrid');
-    const loadMoreBtn = $('loadMoreBtn');
-    const endNote = $('endNote');
-    const searchInput = $('searchInput');
-    const chipsRoot = $('categoryChips');
     const countPill = $('countPill');
     const featuredBanner = $('featuredBanner');
 
@@ -943,57 +1037,6 @@
     const escapeHtml = (s = "") => String(s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-
-    function tsValue(ts) {
-      if (!ts) return 0;
-      try {
-        if (ts.toDate) return ts.toDate().getTime();
-        if (ts.seconds) return ts.seconds * 1000;
-        return new Date(ts).getTime() || 0;
-      } catch (e) { return 0; }
-    }
-
-    function formatDate(ts) {
-      try {
-        const d = ts && ts.toDate ? ts.toDate() : (ts ? new Date(ts) : new Date());
-        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-      } catch (e) { return ""; }
-    }
-
-    function formatTimeAgo(ts) {
-      const t = tsValue(ts);
-      if (!t) return '';
-      const diff = Date.now() - t;
-      const m = Math.floor(diff / 60000);
-      if (m < 1) return 'just now';
-      if (m < 60) return m + 'm ago';
-      const h = Math.floor(m / 60);
-      if (h < 24) return h + 'h ago';
-      const d = Math.floor(h / 24);
-      if (d < 7) return d + 'd ago';
-      const w = Math.floor(d / 7);
-      if (w < 5) return w + 'w ago';
-      return formatDate(ts);
-    }
-
-    function formatViews(n) {
-      n = Number(n) || 0;
-      if (n < 1000) return n + ' views';
-      if (n < 100000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K views';
-      if (n < 1000000) return Math.round(n / 1000) + 'K views';
-      return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M views';
-    }
-
-    function initials(name) {
-      if (!name) return 'W';
-      return name.split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-    }
-
-    function placeholderThumb(seed) {
-      return 'data:image/svg+xml;utf8,' + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><rect width="16" height="9" fill="#1a1a1a"/></svg>'
-      );
-    }
 
     /* ============ NAVBAR / HAMBURGER ============ */
     window.addEventListener('scroll', () => {
@@ -1012,346 +1055,167 @@
     overlayClose.addEventListener('click', closeMenu);
     mobileOverlay.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
 
-    /* ============ SKELETON / STATES ============ */
-    function renderSkeletons(count = 6) {
-      featuredBanner.hidden = true;
-      let html = '';
-      for (let i = 0; i < count; i++) {
-        html += `
-          <div class="skel-card" aria-hidden="true">
-            <div class="skeleton skel-thumb"></div>
-            <div class="skel-body">
-              <div class="skeleton skel-line w50"></div>
-              <div class="skeleton skel-line w100"></div>
-              <div class="skeleton skel-line w70"></div>
-            </div>
-          </div>`;
-      }
-      grid.innerHTML = html;
-      loadMoreBtn.hidden = true;
-      endNote.hidden = true;
+    /* ============ LOADING / ERROR / EMPTY STATES ============ */
+    function showLoading() {
+      const main = document.querySelector('main.container');
+      if (main) main.innerHTML = `
+        <div style="min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+          <div style="width:36px;height:36px;border:3px solid #E8E4DF;border-top-color:#C8102E;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:14px;color:#6B6B6B;">Loading field reports...</div>
+        </div>`;
     }
-
+    function hideLoading() {
+      const main = document.querySelector('main.container');
+      if (main) main.innerHTML = `<div id="sections-container"></div><div class="load-more-wrap"><div class="end-note" id="endNote" hidden>You've seen all field reports.</div></div>`;
+    }
+    function showErrorState() {
+      const main = document.querySelector('main.container');
+      if (main) main.innerHTML = `
+        <div style="min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;">
+          <div style="font-size:48px;">📡</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#1A1A1A;">Could not load videos.</div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:14px;color:#6B6B6B;">Check your connection.</div>
+          <button onclick="initMediaPage()" style="margin-top:8px;border:2px solid #C8102E;color:#C8102E;background:transparent;padding:10px 24px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Retry</button>
+        </div>`;
+    }
     function showEmptyState() {
-      featuredBanner.hidden = true;
-      grid.innerHTML = `
-        <div class="empty-state">
-          <div class="emoji">🎬</div>
-          <h3>No field reports yet.</h3>
-          <p>Check back soon — our correspondents are in the field.</p>
-          <a class="empty-link" href="submit.html">Submit a Video Report →</a>
+      const main = document.querySelector('main.container');
+      if (main) main.innerHTML = `
+        <div style="min-height:50vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;">
+          <div style="font-size:48px;">🎬</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#1A1A1A;">No videos published yet.</div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:14px;color:#9A9A9A;">Check back soon — our correspondents are in the field.</div>
         </div>`;
-      loadMoreBtn.hidden = true;
-      endNote.hidden = true;
+    }
+    function updateVideoCount(n) {
+      if (countPill) countPill.textContent = `[ ${n} Field Report${n === 1 ? '' : 's'} ]`;
     }
 
-    function showNoResults() {
-      featuredBanner.hidden = true;
-      grid.innerHTML = `
-        <div class="empty-state">
-          <p class="no-results-msg">No results for "<span class="no-results-q">${escapeHtml(currentSearch)}</span>"</p>
-          <p>Try a different keyword or browse all categories.</p>
-          <button type="button" class="empty-link" id="clearSearchBtn" style="background:none;border:none;cursor:pointer;">Clear search</button>
-        </div>`;
-      const clearBtn = $('clearSearchBtn');
-      if (clearBtn) clearBtn.addEventListener('click', () => {
-        currentSearch = '';
-        searchInput.value = '';
-        renderVideos(loadedVideos);
+    /* ============ TAB NAV ============ */
+    function initTabs(cats) {
+      const tabsContainer = document.getElementById('categoryChips');
+      if (!tabsContainer) return;
+      cats.forEach(cat => {
+        if (!tabsContainer.querySelector(`[data-tab="${cat.id}"]`)) {
+          const btn = document.createElement('button');
+          btn.className = 'chip';
+          btn.dataset.tab = cat.id;
+          btn.setAttribute('role', 'tab');
+          btn.textContent = (cat.icon || '⭐') + ' ' + cat.name;
+          tabsContainer.appendChild(btn);
+        }
       });
-      loadMoreBtn.hidden = true;
-      endNote.hidden = true;
+      tabsContainer.querySelectorAll('.chip').forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabsContainer.querySelectorAll('.chip').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+          tab.classList.add('active');
+          tab.setAttribute('aria-selected','true');
+          const tabId = tab.dataset.tab || (tab.dataset.cat === 'All' ? 'all' : tab.dataset.cat === 'Most Viewed' ? 'most-viewed' : tab.dataset.cat === 'Latest' ? 'latest' : (tab.dataset.cat||'').toLowerCase().replace(/[^a-z0-9]/g,'-'));
+          filterSections(tabId);
+        });
+      });
+    }
+    function filterSections(tabId) {
+      document.querySelectorAll('.video-section').forEach(sec => {
+        sec.style.display = (tabId === 'all' || sec.dataset.sectionId === tabId) ? 'block' : 'none';
+      });
     }
 
-    function showError() {
-      featuredBanner.hidden = true;
-      grid.innerHTML = `
-        <div class="empty-state">
-          <div class="emoji">⚠️</div>
-          <h3>Could not load field reports.</h3>
-          <p>Check your connection and try again.</p>
-          <button type="button" class="empty-link" id="retryBtn" style="background:none;border:none;cursor:pointer;">Retry →</button>
-        </div>`;
-      const retryBtn = $('retryBtn');
-      if (retryBtn) retryBtn.addEventListener('click', () => fetchVideos(true));
-      loadMoreBtn.hidden = true;
-      endNote.hidden = true;
-    }
-
-    /* ============ FEATURED BANNER ============ */
-    function renderFeatured(video) {
-      if (!video) {
-        featuredBanner.hidden = true;
-        return;
-      }
-      const link = $('featuredLink');
-      const thumb = $('featuredThumb');
-      const fallback = $('featuredFallback');
-      link.href = `story.html?id=${encodeURIComponent(video.id)}`;
-      const thumbUrl = video.thumbnailUrl || '';
-      if (thumbUrl) {
-        thumb.style.display = '';
-        fallback.hidden = true;
-        thumb.src = thumbUrl;
-        thumb.onerror = () => {
-          thumb.style.display = 'none';
-          fallback.hidden = false;
-        };
-      } else {
-        thumb.style.display = 'none';
-        fallback.hidden = false;
-      }
-      $('featuredTitle').textContent = video.title || 'Untitled';
-      $('featuredDesc').textContent = video.description || '';
-      $('featuredAuthor').textContent = video.author || 'Anonymous';
-      $('featuredUni').textContent = video.university ? '— ' + video.university : '';
-      $('featuredDuration').textContent = video.duration ? '🎬 ' + video.duration : '';
-      $('featuredViews').textContent = formatViews(video.views);
-      featuredBanner.hidden = false;
-    }
-
-    /* ============ VIDEO CARD RENDER ============ */
-    function videoCardHTML(v) {
-      const id = v.id;
-      const cat = v.category || 'Field Reports';
-      const title = v.title || 'Untitled';
-      const desc = v.description || '';
-      const author = v.author || 'Anonymous';
-      const uni = v.university || 'Independent';
-      const duration = v.duration || '';
-      const views = formatViews(v.views);
-      const thumb = v.thumbnailUrl || '';
-      const safeId = encodeURIComponent(id);
-
+    /* ============ VIDEO CARD HTML ============ */
+    function videoCardHTML(v, catLabel) {
+      const thumb = v.thumbnail || getThumb(v.youtubeId, 'hqdefault');
+      const mqThumb = getThumb(v.youtubeId, 'mqdefault');
       return `
-        <a class="video-card" href="story.html?id=${safeId}" aria-label="${escapeHtml(title)}">
+        <a class="video-card" href="story.html?ytid=${encodeURIComponent(v.youtubeId)}">
           <div class="video-thumb">
-            ${thumb
-              ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.hidden=false;" />
-                 <div class="video-thumb-fallback" hidden>🎬</div>`
-              : `<div class="video-thumb-fallback">🎬</div>`
-            }
-            ${duration ? `<div class="video-duration">${escapeHtml(duration)}</div>` : ''}
+            <img src="${thumb}" alt="" loading="lazy" onerror="this.src='${mqThumb}'" />
+            ${v.duration ? `<div class="video-duration">${v.duration}</div>` : ''}
             <div class="video-play" aria-hidden="true"></div>
           </div>
           <div class="video-body">
-            <div class="video-cat">${escapeHtml(cat)}</div>
-            <div class="video-title">${escapeHtml(title)}</div>
-            ${desc ? `<div class="video-desc">${escapeHtml(desc)}</div>` : ''}
+            ${catLabel ? `<div class="video-cat">${catLabel}</div>` : ''}
+            <div class="video-title">${v.title || 'Untitled'}</div>
+            ${v.adminNote ? `<div style="font-family:'DM Sans',sans-serif;font-size:12px;font-style:italic;color:#6B6B6B;margin-bottom:6px;">✦ ${v.adminNote}</div>` : ''}
             <div class="video-meta-row">
-              <div class="video-author">
-                <div class="video-avatar">${escapeHtml(initials(author))}</div>
-                <div class="video-author-text">${escapeHtml(author)}<span class="uni"> — ${escapeHtml(uni)}</span></div>
-              </div>
-              <div class="video-views">${escapeHtml(views)}</div>
+              <div class="video-views">${formatViews(v.views)}</div>
+              <div class="video-views">${timeAgo(v.publishedAt)}</div>
             </div>
           </div>
         </a>`;
     }
 
-    function renderVideos(videos) {
-      // Apply client-side search
-      const q = currentSearch.toLowerCase();
-      const filtered = !q
-        ? videos
-        : videos.filter(v => (v.title || '').toLowerCase().includes(q));
-
-      if (!videos.length) {
-        showEmptyState();
-        return;
-      }
-      if (q && !filtered.length) {
-        showNoResults();
-        return;
-      }
-
-      // Featured = first item from full loaded set (latest), only when no search active
-      if (!q && videos[0]) {
-        renderFeatured(videos[0]);
-      } else {
-        featuredBanner.hidden = true;
-      }
-
-      // Skip the featured video in the grid only when no search active
-      const cardsArr = (!q && videos[0]) ? filtered.slice(1) : filtered;
-
-      if (!cardsArr.length) {
-        // featured exists but nothing else after dedupe
-        grid.innerHTML = `
-          <div class="empty-state">
-            <p>That's the only field report in this category right now.</p>
-          </div>`;
-      } else {
-        grid.innerHTML = cardsArr.map(videoCardHTML).join('');
-      }
-
-      // Load more visibility
-      if (fallbackMode || allLoaded) {
-        loadMoreBtn.hidden = true;
-        endNote.hidden = !!q; // hide end note while user is searching
-        if (!q) endNote.hidden = false;
-      } else {
-        loadMoreBtn.hidden = !!q; // hide load more while searching, since search is client-side
-        endNote.hidden = true;
-      }
+    /* ============ RENDER SECTION ============ */
+    function renderSection(opts) {
+      const container = document.getElementById('sections-container');
+      if (!container) return;
+      const sec = document.createElement('div');
+      sec.className = 'video-section';
+      sec.dataset.sectionId = opts.id;
+      sec.style.padding = '48px 0';
+      sec.style.borderBottom = '1px solid #E8E4DF';
+      const cardsHTML = opts.videos.map(v => videoCardHTML(v, opts.name)).join('');
+      sec.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;">
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:26px;color:#1A1A1A;">
+              <span style="margin-right:8px;">${opts.icon || ''}</span>${opts.name}
+            </div>
+            ${opts.subtitle ? `<div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#6B6B6B;font-style:italic;margin-top:4px;">${opts.subtitle}</div>` : ''}
+            <div style="width:40px;height:2px;background:#C8102E;margin-top:8px;"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
+          ${cardsHTML}
+        </div>
+        <style>
+          @media(max-width:1024px){.video-section div[style*='repeat(4']{grid-template-columns:repeat(3,1fr)!important;}}
+          @media(max-width:768px){.video-section div[style*='repeat(4']{display:flex!important;overflow-x:auto;gap:16px!important;padding-bottom:8px;} .video-section .video-card{min-width:240px;flex-shrink:0;}}
+        </style>`;
+      container.appendChild(sec);
     }
 
-    /* ============ LOAD MORE STATE ============ */
-    function setLoadMoreLoading(loading) {
-      if (!loadMoreBtn) return;
-      if (loading) {
-        loadMoreBtn.disabled = true;
-        loadMoreBtn.innerHTML = `<span class="spinner"></span> Loading...`;
-      } else {
-        loadMoreBtn.disabled = false;
-        loadMoreBtn.innerHTML = `Load More`;
-      }
-    }
-
-    /* ============ FIRESTORE FETCH ============ */
-    async function fetchVideos(reset = false) {
-      if (reset) {
-        lastDoc = null;
-        allLoaded = false;
-        loadedVideos = [];
-        fallbackMode = false;
-        featuredRendered = false;
-        renderSkeletons();
-      }
-      if (allLoaded) return;
-
-      if (!firebaseReady) {
-        // No backend available — just show empty state
-        showEmptyState();
-        updateCount(0);
-        return;
-      }
-
-      setLoadMoreLoading(true);
-
-      try {
-        let query;
-        if (currentCategory === 'All') {
-          query = db.collection('videos')
-            .where('status', '==', 'published')
-            .orderBy('publishedAt', 'desc')
-            .limit(PAGE_SIZE);
-        } else {
-          query = db.collection('videos')
-            .where('status', '==', 'published')
-            .where('category', '==', currentCategory)
-            .orderBy('publishedAt', 'desc')
-            .limit(PAGE_SIZE);
+    /* ============ RENDER CURATED / AUTO SECTIONS ============ */
+    function renderCuratedSections(cats, videos) {
+      cats.forEach(cat => {
+        const matched = matchVideos(cat.videos, videos);
+        if (matched.length) {
+          renderSection({ id: cat.id, icon: cat.icon || '⭐', name: cat.name, subtitle: cat.subtitle || '', videos: matched.slice(0, 8) });
         }
-        if (lastDoc) query = query.startAfter(lastDoc);
-
-        const snap = await query.get();
-
-        if (snap.empty || snap.docs.length < PAGE_SIZE) {
-          allLoaded = true;
-        }
-        if (!snap.empty) {
-          lastDoc = snap.docs[snap.docs.length - 1];
-          const newVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          loadedVideos = [...loadedVideos, ...newVideos];
-        }
-
-        if (loadedVideos.length === 0) {
-          showEmptyState();
-        } else {
-          renderVideos(loadedVideos);
-        }
-        updateCount(loadedVideos.length);
-
-      } catch (err) {
-        console.error('fetchVideos error:', err);
-        const isIndexErr = err && (
-          err.code === 'failed-precondition' ||
-          /index/i.test(err.message || '') ||
-          /requires an index/i.test(err.message || '')
-        );
-
-        if (isIndexErr) {
-          // Fallback: simple query, sort client-side, no pagination
-          try {
-            let q2 = db.collection('videos').where('status', '==', 'published');
-            if (currentCategory !== 'All') {
-              q2 = q2.where('category', '==', currentCategory);
-            }
-            const snap = await q2.get();
-            const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            items.sort((a, b) => tsValue(b.publishedAt) - tsValue(a.publishedAt));
-            loadedVideos = items;
-            allLoaded = true;
-            fallbackMode = true;
-            if (!loadedVideos.length) {
-              showEmptyState();
-            } else {
-              renderVideos(loadedVideos);
-            }
-            updateCount(loadedVideos.length);
-          } catch (e2) {
-            console.error('fallback fetchVideos error:', e2);
-            if (loadedVideos.length === 0) showError();
-          }
-        } else {
-          if (loadedVideos.length === 0) showError();
-        }
-      } finally {
-        setLoadMoreLoading(false);
-      }
-    }
-
-    /* ============ COUNT PILL ============ */
-    function updateCount(visibleCount) {
-      // Try to query the live total; fall back to current loaded count
-      if (firebaseReady && db.collection('videos').where('status','==','published').count) {
-        db.collection('videos').where('status','==','published').count().get()
-          .then(snap => {
-            const n = snap.data().count;
-            countPill.textContent = `[ ${n} Field Report${n === 1 ? '' : 's'} ]`;
-          })
-          .catch(() => {
-            countPill.textContent = `[ ${visibleCount}${allLoaded ? '' : '+'} Field Reports ]`;
-          });
-      } else {
-        countPill.textContent = `[ ${visibleCount}${allLoaded ? '' : '+'} Field Reports ]`;
-      }
-    }
-
-    /* ============ CATEGORY CHIPS ============ */
-    chipsRoot.querySelectorAll('.chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const cat = chip.dataset.cat;
-        if (cat === currentCategory) return;
-        currentCategory = cat;
-        chipsRoot.querySelectorAll('.chip').forEach(c => {
-          c.classList.remove('active');
-          c.setAttribute('aria-selected', 'false');
-        });
-        chip.classList.add('active');
-        chip.setAttribute('aria-selected', 'true');
-        // Reset search when switching category for predictability
-        currentSearch = '';
-        searchInput.value = '';
-        fetchVideos(true);
       });
-    });
+    }
+    function renderMostViewed(videos) {
+      const sorted = [...videos].sort((a,b) => b.views - a.views).slice(0, 8);
+      renderSection({ id: 'most-viewed', icon: '🔥', name: 'Most Viewed', subtitle: 'Our highest viewed reports', videos: sorted });
+    }
+    function renderLatest(videos) {
+      renderSection({ id: 'latest', icon: '🕐', name: 'Latest Uploads', subtitle: 'Fresh from the field', videos: videos.slice(0, 12) });
+    }
 
-    /* ============ SEARCH ============ */
-    let searchTimer;
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        currentSearch = searchInput.value.trim();
-        renderVideos(loadedVideos);
-      }, 300);
-    });
-
-    /* ============ LOAD MORE ============ */
-    loadMoreBtn.addEventListener('click', () => {
-      fetchVideos(false);
-    });
+    /* ============ MAIN INIT ============ */
+    async function initMediaPage() {
+      showLoading();
+      try {
+        const [videos, cats] = await Promise.all([
+          fetchChannelVideos(50),
+          getCuratedCategories()
+        ]);
+        allVideos = videos;
+        categories = cats;
+        hideLoading();
+        updateVideoCount(videos.length);
+        if (!videos.length) { showEmptyState(); return; }
+        renderCuratedSections(cats, videos);
+        renderMostViewed(videos);
+        renderLatest(videos);
+        initTabs(cats);
+        const endNote = document.getElementById('endNote');
+        if (endNote) endNote.hidden = false;
+      } catch(err) {
+        console.error('[WEVOX] initMediaPage error:', err);
+        hideLoading();
+        showErrorState();
+      }
+    }
 
     /* ============ SITE CONFIG (Footer) ============ */
     async function loadSiteConfig() {
@@ -1360,22 +1224,10 @@
         const footerDoc = await db.collection('siteConfig').doc('footer').get();
         if (footerDoc.exists) {
           const f = footerDoc.data();
-          if (f.email) {
-            const emailEl = $('footer-email');
-            if (emailEl) emailEl.textContent = f.email;
-          }
-          if (f.twitter) {
-            const tw = $('social-twitter');
-            if (tw) tw.href = f.twitter;
-          }
-          if (f.youtube) {
-            const yt = $('social-youtube');
-            if (yt) yt.href = f.youtube;
-          }
-          if (f.instagram) {
-            const ig = $('social-instagram');
-            if (ig) ig.href = f.instagram;
-          }
+          if (f.email) { const el = document.getElementById('footer-email'); if (el) el.textContent = f.email; }
+          if (f.twitter) { const el = document.getElementById('social-twitter'); if (el) el.href = f.twitter; }
+          if (f.youtube) { const el = document.getElementById('social-youtube'); if (el) el.href = f.youtube; }
+          if (f.instagram) { const el = document.getElementById('social-instagram'); if (el) el.href = f.instagram; }
         }
       } catch (e) {
         console.warn('siteConfig load failed:', e);
@@ -1383,11 +1235,11 @@
     }
 
     /* ============ KICK OFF ============ */
-    const copyYearEl = $('copy-year');
+    const copyYearEl = document.getElementById('copy-year');
     if (copyYearEl) copyYearEl.textContent = new Date().getFullYear();
 
     loadSiteConfig();
-    fetchVideos(true);
+    initMediaPage();
   </script>
 </body>
 </html>

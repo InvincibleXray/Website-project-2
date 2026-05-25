@@ -878,6 +878,21 @@
       firebaseReady = true;
     } catch (e) { firebaseReady = false; }
 
+    /* ===== YOUTUBE CONFIG ===== */
+    const YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY";
+    const YOUTUBE_CHANNEL_ID = "YOUR_CHANNEL_ID";
+
+    /* ===== YOUTUBE UTILITIES ===== */
+    function parseDuration(iso) {
+      if (!iso) return '';
+      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!m) return '';
+      const h = parseInt(m[1]||0), min = parseInt(m[2]||0), sec = parseInt(m[3]||0);
+      const ss = sec.toString().padStart(2,'0');
+      if (h > 0) return `${h}:${min.toString().padStart(2,'0')}:${ss}`;
+      return `${min}:${ss}`;
+    }
+
     /* ===== SAMPLE FALLBACK STORIES (same IDs as index.html) ===== */
     const NOW = Date.now();
     const ago = (d) => ({ toDate: () => new Date(NOW - d * 86400000) });
@@ -1748,10 +1763,73 @@
       }
     }
 
+    /* ===== LOAD YOUTUBE VIDEO ===== */
+    async function loadYouTubeVideo(ytId) {
+      $("storySkeleton").style.display = "block";
+      $("storyContent").style.display = "none";
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?id=${ytId}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`
+        );
+        const data = await res.json();
+        if (!data.items?.length) { showNotFound(); return; }
+        const item = data.items[0];
+        const video = {
+          youtubeId: ytId,
+          type: 'VIDEO',
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnail: item.snippet.thumbnails.high?.url,
+          videoUrl: `https://www.youtube.com/watch?v=${ytId}`,
+          duration: parseDuration(item.contentDetails.duration),
+          views: parseInt(item.statistics.viewCount || 0),
+          author: item.snippet.channelTitle,
+          university: 'WEVOX Correspondent',
+          publishedAt: item.snippet.publishedAt
+        };
+        document.title = `${video.title} — WEVOX`;
+        renderVideo(video);
+        if (firebaseReady) {
+          try {
+            const cats = await db.collection('videoCategories').get();
+            cats.forEach(doc => {
+              const cat = doc.data();
+              const found = (cat.videos||[]).find(v => v.youtubeId === ytId);
+              if (found?.note) showAdminNote(found.note, cat.name);
+            });
+          } catch(_) {}
+        }
+      } catch(err) {
+        console.error(err);
+        showError();
+      }
+    }
+
+    /* ===== SHOW ADMIN NOTE ===== */
+    function showAdminNote(note, catName) {
+      const el = document.createElement('div');
+      el.style.cssText = `background:#F0EDE8;border-left:3px solid #C8102E;border-radius:4px;padding:12px 16px;margin:16px 0;display:flex;gap:10px;align-items:flex-start;`;
+      el.innerHTML = `
+        <span style="font-size:18px;">⭐</span>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#C8102E;letter-spacing:1px;margin-bottom:4px;">${catName.toUpperCase()}</div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#6B6B6B;font-style:italic;">"${note}"</div>
+        </div>`;
+      const shareRow = document.getElementById('topShareRow');
+      if (shareRow) shareRow.after(el);
+    }
+
     /* ===== MAIN FETCH ===== */
     async function loadStory() {
       const params = new URLSearchParams(window.location.search);
       const storyId = params.get("id");
+      const ytId = params.get("ytid");
+
+      if (ytId) {
+        loadYouTubeVideo(ytId);
+        return;
+      }
+
       if (!storyId) { showNotFound(); return; }
 
       let story = null;

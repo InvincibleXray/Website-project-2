@@ -1029,7 +1029,7 @@
         <aside id="videos" aria-labelledby="videos-heading">
           <div class="section-head">
             <h2 class="section-title" id="videos-heading">Field Reports</h2>
-            <a href="#videos" class="view-all">View all →</a>
+            <a href="media.html" class="view-all">View all →</a>
           </div>
           <div class="videos-list" id="videosList">
             <div class="video-card"><div class="skeleton sk-video-thumb"></div><div class="skeleton sk-line short"></div><div class="skeleton sk-line long"></div></div>
@@ -1129,6 +1129,73 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
   <script>
+    /* ============ YOUTUBE CONFIG ============ */
+    const YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY";
+    const YOUTUBE_CHANNEL_ID = "YOUR_CHANNEL_ID";
+
+    /* ============ YOUTUBE UTILITY FUNCTIONS ============ */
+    function parseDuration(iso) {
+      if (!iso) return '';
+      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!m) return '';
+      const h = parseInt(m[1]||0), min = parseInt(m[2]||0), sec = parseInt(m[3]||0);
+      const ss = sec.toString().padStart(2,'0');
+      if (h > 0) return `${h}:${min.toString().padStart(2,'0')}:${ss}`;
+      return `${min}:${ss}`;
+    }
+    function formatViewsYT(n) {
+      n = Number(n)||0;
+      if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M views';
+      if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K views';
+      return n + ' views';
+    }
+    function getThumb(youtubeId, quality) {
+      return `https://img.youtube.com/vi/${youtubeId}/${quality||'hqdefault'}.jpg`;
+    }
+    function getEmbed(youtubeId) {
+      return `https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1`;
+    }
+    function timeAgo(dateStr) {
+      const d = new Date(dateStr);
+      const diff = new Date() - d;
+      const days = Math.floor(diff/(1000*60*60*24));
+      if (days === 0) return 'Today';
+      if (days === 1) return '1d ago';
+      if (days < 30) return days + 'd ago';
+      if (days < 365) return Math.floor(days/30) + 'mo ago';
+      return Math.floor(days/365) + 'y ago';
+    }
+
+    /* ============ YOUTUBE FETCH ============ */
+    async function fetchChannelVideos(maxResults) {
+      maxResults = maxResults || 50;
+      try {
+        const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?id=${YOUTUBE_CHANNEL_ID}&part=contentDetails,statistics&key=${YOUTUBE_API_KEY}`);
+        const chData = await chRes.json();
+        if (!chData.items?.length) throw new Error('Channel not found');
+        const uploadsId = chData.items[0].contentDetails.relatedPlaylists.uploads;
+        const plRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?playlistId=${uploadsId}&part=contentDetails&maxResults=${maxResults}&key=${YOUTUBE_API_KEY}`);
+        const plData = await plRes.json();
+        if (!plData.items?.length) return [];
+        const videoIds = plData.items.map(i => i.contentDetails.videoId).join(',');
+        const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${videoIds}&part=snippet,contentDetails,statistics&key=${YOUTUBE_API_KEY}`);
+        const vData = await vRes.json();
+        return vData.items.map(item => ({
+          youtubeId: item.id,
+          title: item.snippet.title,
+          description: item.snippet.description.substring(0, 300),
+          thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url,
+          duration: parseDuration(item.contentDetails.duration),
+          views: parseInt(item.statistics.viewCount || 0),
+          publishedAt: item.snippet.publishedAt,
+          channelTitle: item.snippet.channelTitle
+        }));
+      } catch(err) {
+        console.error('[WEVOX] YouTube fetch error:', err);
+        return [];
+      }
+    }
+
     /* ============ FIREBASE CONFIG ============ */
     const firebaseConfig = {
       apiKey: "AIzaSyBjMv5lhUQxDQdC3mihSH4Ep3ctFGxUZQY",
@@ -1306,35 +1373,42 @@
       `).join("");
     }
 
-    /* ============ RENDER VIDEOS ============ */
-    function renderVideos() {
+    /* ============ RENDER VIDEOS (YouTube API) ============ */
+    function renderVideoCards(videos) {
       const list = $("videosList");
-      const filtered = allVideos.filter(matchesCategory).slice(0, 3);
-      if (!filtered.length) {
-        list.innerHTML = `
-          <div class="empty-state">
-            <strong>No field reports yet.</strong>
-            Be the first.
-          </div>`;
+      if (!videos.length) {
+        list.innerHTML = `<div class="empty-state"><strong>No field reports yet.</strong> Be the first.</div>`;
         return;
       }
-      list.innerHTML = filtered.map((v, i) => `
-        <article class="video-card stagger" data-idx="${i}" style="animation-delay:${i * 0.1}s">
+      list.innerHTML = videos.map((v, i) => `
+        <a class="video-card stagger" href="story.html?ytid=${encodeURIComponent(v.youtubeId)}" style="animation-delay:${i * 0.1}s">
           <div class="video-thumb-wrap">
-            <img class="video-thumb" src="${escapeHtml(v.thumbnailUrl || placeholderImg('v' + (v.id || i)))}" alt="" loading="lazy"
-                 onerror="this.src='${placeholderImg('vfallback' + i)}'" />
+            <img class="video-thumb"
+              src="${getThumb(v.youtubeId, 'hqdefault')}"
+              alt="" loading="lazy"
+              onerror="this.src='${getThumb(v.youtubeId, 'mqdefault')}'" />
             <div class="video-overlay"><div class="play-btn">▶</div></div>
-            ${v.duration ? `<div class="duration">${escapeHtml(v.duration)}</div>` : ""}
+            ${v.duration ? `<div class="duration">${v.duration}</div>` : ''}
           </div>
-          <div class="video-tag">${escapeHtml(v.category || "Field Reports")}</div>
-          <h3 class="video-title">${escapeHtml(v.title || "Untitled")}</h3>
-          <div class="video-meta">By ${escapeHtml(v.author || "Anonymous")} — ${escapeHtml(v.university || "Independent")}</div>
-        </article>
-      `).join("");
-
-      list.querySelectorAll(".video-card").forEach((el, i) => {
-        el.addEventListener("click", () => openVideo(filtered[i]));
-      });
+          <div class="video-tag">Field Reports</div>
+          <h3 class="video-title">${v.title || 'Untitled'}</h3>
+          <div class="video-meta">${formatViewsYT(v.views)} · ${timeAgo(v.publishedAt)}</div>
+        </a>
+      `).join('');
+    }
+    function showVideoEmptyState() {
+      const list = $("videosList");
+      if (list) list.innerHTML = `<div class="empty-state"><strong>No field reports yet.</strong> Be the first.</div>`;
+    }
+    async function loadHomeVideos() {
+      try {
+        const videos = await fetchChannelVideos(6);
+        if (!videos.length) { showVideoEmptyState(); return; }
+        const top = [...videos].sort((a,b) => b.views - a.views).slice(0, 3);
+        renderVideoCards(top);
+      } catch(err) {
+        showVideoEmptyState();
+      }
     }
 
     /* ============ VIDEO MODAL ============ */
@@ -1452,30 +1526,7 @@
     }
 
     async function fetchVideos() {
-      let docs = [];
-      if (firebaseReady) {
-        try {
-          let snap;
-          try {
-            snap = await db.collection("videos")
-              .where("status", "==", "published")
-              .orderBy("publishedAt", "desc")
-              .limit(20)
-              .get();
-          } catch (e) {
-            console.warn("videos optimised query failed, falling back:", e && e.message);
-            snap = await db.collection("videos").limit(40).get();
-          }
-          docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          docs = docs.filter(d => !d.status || d.status === "published");
-          docs.sort((a, b) => tsValue(b.publishedAt) - tsValue(a.publishedAt));
-        } catch (err) {
-          console.error("videos fetch failed:", err);
-        }
-      }
-      if (!docs.length) docs = SAMPLE_VIDEOS;
-      allVideos = docs;
-      renderVideos();
+      loadHomeVideos();
     }
 
     async function fetchTrending() {
