@@ -10,6 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
+    <!-- TinyMCE -->
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
     <!-- Styles -->
     <style>
         :root {
@@ -1219,7 +1222,7 @@
                             <input type="text" id="edit-image" class="form-control font-mono" value="${(d.coverImage || '').replace(/"/g,'&quot;')}">
                         </div>
                         <div class="input-group"><label>Content</label>
-                            <textarea id="edit-content" class="form-control" rows="6">${d.content || ''}</textarea>
+                            <textarea id="story-content-editor" class="form-control" rows="6">${d.content || ''}</textarea>
                         </div>
                         <div class="input-group"><label>Read Time</label>
                             <input type="text" id="edit-readtime" class="form-control font-mono" value="${(d.readTime || '5 min read').replace(/"/g,'&quot;')}">
@@ -1241,6 +1244,19 @@
                     <button class="btn-primary" style="width:100%" onclick="saveEdit('${type}','${id}')">Save Changes</button>
                 `;
                 openModal(`Edit ${isStory ? 'Story' : 'Video'}`, html);
+                if (isStory) {
+                    tinymce.init({
+                        selector: '#story-content-editor',
+                        skin: 'oxide-dark',
+                        content_css: 'dark',
+                        plugins: 'link lists code media blockquote image',
+                        toolbar: 'blocks bold italic | link image media | blockquote bullist | code',
+                        height: 380,
+                        menubar: false,
+                        branding: false,
+                        promotion: false
+                    });
+                }
             } catch (e) {
                 handleFirestoreError(e, 'openEditModal');
             }
@@ -1258,7 +1274,7 @@
             const update = { title, author, category };
             if (isStory) {
                 update.coverImage = document.getElementById('edit-image').value.trim();
-                update.content = document.getElementById('edit-content').value;
+                update.content = tinymce.get('story-content-editor')?.getContent() || document.getElementById('story-content-editor').value;
                 update.readTime = document.getElementById('edit-readtime').value.trim();
             } else {
                 update.thumbnailUrl = document.getElementById('edit-image').value.trim();
