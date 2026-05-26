@@ -137,7 +137,7 @@
 </div>
 
 <!-- Mobile sidebar backdrop -->
-<div id="sidebar-backdrop" onclick="toggleMobileSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:499;backdrop-filter:blur(2px)"></div>
+<!-- Mobile sidebar backdrop is now created dynamically by toggleMobileSidebar() -->
 
 <!-- MAIN APP -->
 <div id="app" style="display:none">
@@ -1175,6 +1175,17 @@ input[type="checkbox"]{accent-color:var(--accent);width:15px;height:15px;cursor:
 @media(max-width:1200px){.stat-grid{grid-template-columns:repeat(2,1fr)}.dash-grid-2{grid-template-columns:1fr}}
 @media(max-width:900px){.sidebar{transform:translateX(-100%)}.sidebar.mobile-open{transform:none}.main{margin-left:0!important}.hamburger-btn{display:flex!important}.content-area{padding:20px 16px}.topbar{padding:0 16px}.section-header{flex-direction:column;align-items:flex-start}.section-actions{width:100%}.stat-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.modal-card{max-width:100%;margin:16px}.modal-ultra{max-width:100%!important}}
 @media(max-width:500px){.stat-grid{grid-template-columns:1fr}.stat-value{font-size:28px}.data-table thead{display:none}.data-table,.data-table tbody,.data-table tr,.data-table td{display:block;width:100%}.data-table tr{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;padding:12px}.data-table td{border:none;padding:6px 0}.table-thumb-lg{width:100%;height:140px}.pending-meta-grid{grid-template-columns:1fr}}
+
+/* ---- Mobile sidebar slide-in/out ---- */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+}
 </style>
 
 
@@ -1396,9 +1407,10 @@ function nav(section, el) {
   currentSection = section;
   if (sectionLoaders[section]) sectionLoaders[section]();
   if (window.innerWidth <= 900) {
-    document.getElementById('sidebar').classList.remove('mobile-open');
-    const bd = document.getElementById('sidebar-backdrop');
-    if (bd) bd.style.display = 'none';
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobile-backdrop');
+    sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.remove();
   }
 }
 
@@ -1414,9 +1426,9 @@ document.addEventListener('click', function(e) {
   e.preventDefault();
   if (window.innerWidth <= 900) {
     const sb = document.getElementById('sidebar');
-    const bd = document.getElementById('sidebar-backdrop');
+    const bd = document.getElementById('mobile-backdrop');
     if (sb) sb.classList.remove('mobile-open');
-    if (bd) bd.style.display = 'none';
+    if (bd) bd.remove();
   } else {
     const sb = document.getElementById('sidebar');
     const main = document.getElementById('main');
@@ -1426,11 +1438,24 @@ document.addEventListener('click', function(e) {
 }, true);
 
 function toggleMobileSidebar() {
-  const sb = document.getElementById('sidebar');
-  const bd = document.getElementById('sidebar-backdrop');
-  const isOpen = sb.classList.toggle('mobile-open');
-  if (bd) bd.style.display = isOpen ? 'block' : 'none';
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('mobile-open');
+
+  if (sidebar.classList.contains('mobile-open')) {
+    let backdrop = document.getElementById('mobile-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'mobile-backdrop';
+      backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:499;backdrop-filter:blur(2px);cursor:pointer;';
+      backdrop.onclick = () => toggleMobileSidebar();
+      document.body.appendChild(backdrop);
+    }
+  } else {
+    const backdrop = document.getElementById('mobile-backdrop');
+    if (backdrop) backdrop.remove();
+  }
 }
+window.toggleMobileSidebar = toggleMobileSidebar;
 
 /* ---- 4. UI UTILITIES ---- */
 function toast(msg, type = 'info', duration = 3500) {
@@ -1838,16 +1863,16 @@ function renderStories() {
   }
   tbody.innerHTML = storiesFiltered.map(s => `
     <tr id="story-row-${s.id}">
-      <td><input type="checkbox" class="story-cb" data-id="${s.id}" onchange="handleStoryCheck(this)" ${selectedStories.has(s.id)?'checked':''}></td>
-      <td><img class="table-thumb" src="${s.coverImage||'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2252%22 height=%2238%22><rect width=%2252%22 height=%2238%22 fill=%22%23242428%22/></svg>'}" loading="lazy"></td>
-      <td><div class="td-title">${sanitize(s.title)}</div><div class="td-sub">By ${sanitize(s.author||'—')}</div></td>
-      <td><span class="badge badge-soft">${sanitize(s.category||'—')}</span></td>
-      <td class="font-mono" style="font-size:12px;color:var(--text-muted)">${(s.views||0).toLocaleString()}</td>
-      <td class="font-mono" style="font-size:12px;color:var(--text-muted)">${formatDate(s.publishedAt)}</td>
+      <td><input type="checkbox" class="story-cb" data-id="${s.id}" onchange="handleStoryCheck(this)" ${selectedStories.has(s.id) ? 'checked' : ''}></td>
+      <td><img class="table-thumb" src="${s.coverImage || ''}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2252%22 height=%2238%22%3E%3Crect width=%2252%22 height=%2238%22 fill=%22%23333%22/%3E%3C/svg%3E'"></td>
+      <td><div class="td-title">${sanitize(s.title)}</div><div class="td-sub">By ${sanitize(s.author || '—')}</div></td>
+      <td><span class="badge badge-soft">${sanitize(s.category || '—')}</span></td>
+      <td>${(s.views || 0).toLocaleString()}</td>
+      <td>${formatDate(s.publishedAt)}</td>
       <td><div class="td-actions">
-        <button class="btn-ghost-sm" style="padding:5px 10px;font-size:11px" onclick="previewStory('${s.id}')" title="Preview">👁</button>
+        <button class="btn-ghost-sm" onclick="previewStory('${s.id}')">👁</button>
         <button class="btn-edit-sm" onclick="openEditModal('stories','${s.id}')">Edit</button>
-        <button class="btn-danger-sm" onclick="deleteDoc('stories','${s.id}',fetchStories)">Del</button>
+        <button class="btn-danger-sm" onclick="deleteDoc('stories','${s.id}', fetchStories)">Del</button>
       </div></td>
     </tr>
   `).join('');
@@ -2198,17 +2223,20 @@ async function saveNewVideo() {
 }
 
 /* ---- DELETE ---- */
-async function deleteDoc(coll, id, cb) {
-  showConfirm('Delete Item', 'Permanently delete this item? This cannot be undone.', async () => {
+window.deleteDoc = async function(coll, id, cb) {
+  showConfirm('Delete Item', 'Permanently delete this item?', async () => {
     try {
+      if (!db) { toast('Firebase not connected.', 'error'); return; }
       await db.collection(coll).doc(id).delete();
-      toast('Deleted.', 'info');
+      toast('Deleted successfully.', 'success');
       await logAction('deleted', coll, id);
-      if (cb) cb();
+      if (cb && typeof cb === 'function') await cb();
+      else if (coll === 'stories') fetchStories();
+      else if (coll === 'videos') fetchVideos();
       updateStatCards();
-    } catch(e) { handleFsError(e,'deleteDoc'); }
+    } catch(e) { toast('Delete failed', 'error'); }
   }, '🗑️');
-}
+};
 </script>
 
 
@@ -3000,6 +3028,17 @@ window.addEventListener('load', () => {
     if (err) err.textContent = 'Firebase SDK failed to load. Check internet connection.';
   }
 });
+
+/* ---- Global exports: ensure inline onclick handlers can resolve these ---- */
+window.deleteDoc = deleteDoc;
+window.fetchStories = fetchStories;
+window.previewStory = previewStory;
+window.openEditModal = openEditModal;
+window.handleStoryCheck = handleStoryCheck;
+window.toggleSelectAllStories = toggleSelectAllStories;
+window.bulkDeleteStories = bulkDeleteStories;
+window.clearBulkStories = clearBulkStories;
+window.updateBulkBar = updateBulkBar;
 </script>
 
 </body>
