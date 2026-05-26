@@ -70,7 +70,7 @@
     <div class="confirm-title" id="confirm-title">Are you sure?</div>
     <div class="confirm-msg" id="confirm-msg">This action cannot be undone.</div>
     <div class="confirm-actions">
-      <button class="btn-ghost" id="confirm-cancel">Cancel</button>
+      <button class="btn-ghost-sm" id="confirm-cancel">Cancel</button>
       <button class="btn-danger" id="confirm-ok">Confirm</button>
     </div>
   </div>
@@ -119,6 +119,9 @@
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
+
+<!-- Mobile sidebar backdrop -->
+<div id="sidebar-backdrop" onclick="toggleMobileSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:499;backdrop-filter:blur(2px)"></div>
 
 <!-- MAIN APP -->
 <div id="app" style="display:none">
@@ -442,8 +445,8 @@
             <input type="text" id="curation-note" class="inp" placeholder="Why this video deserves attention…">
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn-ghost-sm" id="curation-fetch-btn">🔍 Fetch Preview</button>
-            <button class="btn-primary" id="curation-add-btn">+ Add to Category</button>
+            <button type="button" class="btn-ghost-sm" id="curation-fetch-btn" onclick="fetchVideoPreview(document.getElementById('curation-input')?.value||'')">🔍 Fetch Preview</button>
+            <button type="button" class="btn-primary" id="curation-add-btn" onclick="addCatVideo()">+ Add to Category</button>
           </div>
           <div id="curation-preview" class="yt-preview" style="display:none">
             <img id="preview-thumb" width="120" height="68" style="border-radius:6px;object-fit:cover;flex-shrink:0">
@@ -704,8 +707,8 @@
       <div class="inp-wrap"><label>Emoji Icon *</label><input type="text" id="nc-icon" class="inp" placeholder="🎬" style="max-width:80px"></div>
       <div class="inp-wrap"><label>Subtitle / Description</label><input type="text" id="nc-sub" class="inp" placeholder="Long-form investigative pieces…"></div>
       <div class="modal-footer-actions">
-        <button class="btn-ghost-sm" onclick="closeModal2('newcat-modal')">Cancel</button>
-        <button class="btn-primary" onclick="createVideoCategory()">Create Category</button>
+        <button type="button" class="btn-ghost-sm" onclick="closeModal2('newcat-modal')">Cancel</button>
+        <button type="button" class="btn-primary" onclick="createVideoCategory()">Create Category</button>
       </div>
     </div>
   </div>
@@ -762,9 +765,9 @@
         <div class="story-preview-wrap" id="story-preview-content"></div>
       </div>
       <div class="modal-footer-actions mt-3">
-        <button class="btn-ghost-sm" onclick="closeModal2('add-story-modal')">Cancel</button>
-        <button class="btn-ghost-sm" onclick="switchEditorTab('preview', document.getElementById('etab-preview'))">Preview →</button>
-        <button class="btn-primary" onclick="saveNewStory()">🚀 Publish Story</button>
+        <button type="button" class="btn-ghost-sm" onclick="closeModal2('add-story-modal')">Cancel</button>
+        <button type="button" class="btn-ghost-sm" onclick="switchEditorTab('preview', document.getElementById('etab-preview'))">Preview →</button>
+        <button type="button" class="btn-primary" onclick="saveNewStory()">🚀 Publish Story</button>
       </div>
     </div>
   </div>
@@ -789,8 +792,8 @@
         <div class="inp-wrap" style="grid-column:1/-1"><label>Description</label><textarea id="av-desc" class="inp" rows="4" placeholder="Brief description…"></textarea></div>
       </div>
       <div class="modal-footer-actions mt-3">
-        <button class="btn-ghost-sm" onclick="closeModal2('add-video-modal')">Cancel</button>
-        <button class="btn-primary" onclick="saveNewVideo()">Publish Video</button>
+        <button type="button" class="btn-ghost-sm" onclick="closeModal2('add-video-modal')">Cancel</button>
+        <button type="button" class="btn-primary" onclick="saveNewVideo()">Publish Video</button>
       </div>
     </div>
   </div>
@@ -880,7 +883,7 @@ img{max-width:100%;display:block}
 /* ---- Main Content Area ---- */
 .main{flex:1;margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;transition:margin-left var(--transition)}
 .main.expanded{margin-left:var(--sidebar-collapsed)}
-.topbar{height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;background:rgba(8,8,9,.85);backdrop-filter:blur(12px);z-index:100}
+.topbar{height:60px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;background:rgba(8,8,9,.85);backdrop-filter:blur(12px);z-index:600}
 .topbar-left{display:flex;align-items:center;gap:14px}
 .topbar-title{font-size:17px;font-weight:600;color:var(--text-primary)}
 .topbar-breadcrumb{font-size:12px;color:var(--text-muted);font-family:var(--font-mono)}
@@ -1377,6 +1380,8 @@ function nav(section, el) {
   if (sectionLoaders[section]) sectionLoaders[section]();
   if (window.innerWidth <= 900) {
     document.getElementById('sidebar').classList.remove('mobile-open');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (bd) bd.style.display = 'none';
   }
 }
 
@@ -1396,7 +1401,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function toggleMobileSidebar() {
-  document.getElementById('sidebar').classList.toggle('mobile-open');
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  const isOpen = sb.classList.toggle('mobile-open');
+  if (bd) bd.style.display = isOpen ? 'block' : 'none';
 }
 
 /* ---- 4. UI UTILITIES ---- */
