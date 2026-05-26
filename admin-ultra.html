@@ -70,8 +70,8 @@
     <div class="confirm-title" id="confirm-title">Are you sure?</div>
     <div class="confirm-msg" id="confirm-msg">This action cannot be undone.</div>
     <div class="confirm-actions">
-      <button class="btn-ghost-sm" id="confirm-cancel">Cancel</button>
-      <button class="btn-danger" id="confirm-ok">Confirm</button>
+      <button class="btn-ghost-sm" id="confirm-cancel" onclick="closeConfirm(false)">Cancel</button>
+      <button class="btn-danger" id="confirm-ok" onclick="closeConfirm(true)">Confirm</button>
     </div>
   </div>
 </div>
@@ -1389,14 +1389,23 @@ function refreshCurrentSection() {
   if (sectionLoaders[currentSection]) sectionLoaders[currentSection]();
 }
 
-/* ---- Sidebar collapse ---- */
+/* ---- Sidebar collapse / mobile close ---- */
 document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('sb-toggle');
   if (btn) btn.addEventListener('click', () => {
-    const sb = document.getElementById('sidebar');
-    const main = document.getElementById('main');
-    sb.classList.toggle('collapsed');
-    main.classList.toggle('expanded');
+    if (window.innerWidth <= 900) {
+      // On mobile, the back-arrow closes the drawer
+      const sb = document.getElementById('sidebar');
+      const bd = document.getElementById('sidebar-backdrop');
+      sb.classList.remove('mobile-open');
+      if (bd) bd.style.display = 'none';
+    } else {
+      // On desktop, toggle the collapsed state
+      const sb = document.getElementById('sidebar');
+      const main = document.getElementById('main');
+      sb.classList.toggle('collapsed');
+      main.classList.toggle('expanded');
+    }
   });
 });
 
@@ -1428,16 +1437,19 @@ function showConfirm(title, msg, cb, icon = '⚠️') {
   document.getElementById('confirm-overlay').style.display = 'flex';
   _confirmCb = cb;
 }
+function closeConfirm(runCb) {
+  document.getElementById('confirm-overlay').style.display = 'none';
+  const cb = _confirmCb;
+  _confirmCb = null;
+  if (runCb && typeof cb === 'function') {
+    try { cb(); } catch (e) { console.error('confirm callback error:', e); }
+  }
+}
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('confirm-cancel').addEventListener('click', () => {
-    document.getElementById('confirm-overlay').style.display = 'none';
-    _confirmCb = null;
-  });
-  document.getElementById('confirm-ok').addEventListener('click', () => {
-    document.getElementById('confirm-overlay').style.display = 'none';
-    if (_confirmCb) _confirmCb();
-    _confirmCb = null;
-  });
+  const cancelBtn = document.getElementById('confirm-cancel');
+  const okBtn = document.getElementById('confirm-ok');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => closeConfirm(false));
+  if (okBtn) okBtn.addEventListener('click', () => closeConfirm(true));
 });
 
 function openModal(title, html) {
