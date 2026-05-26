@@ -252,6 +252,7 @@
             <p class="section-sub" id="dash-greeting">Good morning, Admin</p>
           </div>
           <div class="section-actions">
+            <button class="btn-ghost-sm" onclick="refreshDashboard()" id="dash-refresh-btn" title="Refresh stats">↻ Refresh</button>
             <button class="btn-primary" onclick="nav('pending', document.querySelector('[data-section=pending]'))">Review Submissions</button>
           </div>
         </div>
@@ -285,16 +286,16 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Content Overview</div>
-              <div class="card-meta font-mono">All time</div>
+              <div class="card-meta font-mono" id="dash-last-refresh"></div>
             </div>
-            <canvas id="chart-content" height="180"></canvas>
+            <div class="chart-wrap"><canvas id="chart-content"></canvas></div>
           </div>
           <div class="card">
             <div class="card-header">
               <div class="card-title">Category Breakdown</div>
               <div class="card-meta font-mono">Stories</div>
             </div>
-            <canvas id="chart-categories" height="180"></canvas>
+            <div class="chart-wrap"><canvas id="chart-categories"></canvas></div>
           </div>
         </div>
 
@@ -358,15 +359,22 @@
             <button class="btn-primary" onclick="openAddStoryModal()">+ Add Story</button>
           </div>
         </div>
+        <!-- Bulk action bar (hidden until rows selected) -->
+        <div id="stories-bulk-bar" class="bulk-bar" style="display:none">
+          <span id="stories-bulk-count" class="bulk-bar-label">0 selected</span>
+          <button class="btn-danger-sm" onclick="bulkDeleteStories()">🗑 Delete Selected</button>
+          <button class="btn-ghost-sm" onclick="clearBulkStories()">✕ Clear</button>
+        </div>
         <div class="card p-0">
           <table class="data-table">
             <thead><tr>
+              <th style="width:36px"><input type="checkbox" id="stories-select-all" onchange="toggleSelectAllStories(this)" title="Select all"></th>
               <th style="width:72px">Thumb</th>
               <th>Title / Author</th>
               <th>Category</th>
               <th>Views</th>
               <th>Published</th>
-              <th style="width:100px">Actions</th>
+              <th style="width:130px">Actions</th>
             </tr></thead>
             <tbody id="stories-tbody"></tbody>
           </table>
@@ -714,26 +722,49 @@
   </div>
 </div>
 
-<!-- Add Story Modal -->
+<!-- Add Story Modal — Ultra Editor -->
 <div class="modal-overlay" id="add-story-modal">
-  <div class="modal-card modal-wide">
+  <div class="modal-card modal-ultra">
     <div class="modal-hdr">
-      <div class="modal-title">Add New Story</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="modal-title">Add New Story</div>
+        <div class="editor-tabs">
+          <button class="etab active" onclick="switchEditorTab('write',this)" id="etab-write">✍️ Write</button>
+          <button class="etab" onclick="switchEditorTab('preview',this)" id="etab-preview">👁 Preview</button>
+        </div>
+      </div>
       <button class="modal-close" onclick="closeModal2('add-story-modal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="grid-2">
-        <div class="inp-wrap" style="grid-column:1/-1"><label>Title *</label><input type="text" id="as-title" class="inp" placeholder="Story headline…"></div>
-        <div class="inp-wrap"><label>Author *</label><input type="text" id="as-author" class="inp" placeholder="Author name"></div>
-        <div class="inp-wrap"><label>Category *</label><select id="as-cat" class="inp"><option value="">Select…</option></select></div>
-        <div class="inp-wrap"><label>University</label><input type="text" id="as-uni" class="inp" placeholder="University name"></div>
-        <div class="inp-wrap"><label>Read Time</label><input type="text" id="as-readtime" class="inp font-mono" placeholder="5 min read"></div>
-        <div class="inp-wrap" style="grid-column:1/-1"><label>Cover Image URL</label><input type="text" id="as-img" class="inp font-mono" placeholder="https://…"></div>
+      <!-- Write tab -->
+      <div id="editor-write-panel">
+        <div class="grid-2">
+          <div class="inp-wrap" style="grid-column:1/-1"><label>Title *</label><input type="text" id="as-title" class="inp" placeholder="Story headline…" oninput="updateEditorPreview()"></div>
+          <div class="inp-wrap"><label>Author *</label><input type="text" id="as-author" class="inp" placeholder="Author name"></div>
+          <div class="inp-wrap"><label>Category *</label><select id="as-cat" class="inp"><option value="">Select…</option></select></div>
+          <div class="inp-wrap"><label>University</label><input type="text" id="as-uni" class="inp" placeholder="University name"></div>
+          <div class="inp-wrap"><label>Read Time</label><input type="text" id="as-readtime" class="inp font-mono" placeholder="5 min read"></div>
+          <div class="inp-wrap" style="grid-column:1/-1"><label>Cover Image URL</label><input type="text" id="as-img" class="inp font-mono" placeholder="https://…" oninput="updateEditorPreview()"></div>
+        </div>
+        <div class="inp-wrap mt-2">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label>Content</label>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="editor-stat" id="as-word-count">0 words</span>
+              <span class="editor-stat" id="as-char-count">0 chars</span>
+            </div>
+          </div>
+          <div id="as-quill" style="height:300px"></div>
+        </div>
       </div>
-      <div class="inp-wrap mt-2"><label>Content (Rich Text)</label><div id="as-quill" style="height:240px"></div></div>
+      <!-- Preview tab -->
+      <div id="editor-preview-panel" style="display:none">
+        <div class="story-preview-wrap" id="story-preview-content"></div>
+      </div>
       <div class="modal-footer-actions mt-3">
         <button class="btn-ghost-sm" onclick="closeModal2('add-story-modal')">Cancel</button>
-        <button class="btn-primary" onclick="saveNewStory()">Publish Story</button>
+        <button class="btn-ghost-sm" onclick="switchEditorTab('preview', document.getElementById('etab-preview'))">Preview →</button>
+        <button class="btn-primary" onclick="saveNewStory()">🚀 Publish Story</button>
       </div>
     </div>
   </div>
@@ -1083,13 +1114,46 @@ select.inp option,select.inp-sm option{background:var(--card);color:var(--text-p
 .ql-snow .ql-fill{fill:var(--text-secondary)!important}
 .ql-snow .ql-picker{color:var(--text-secondary)!important}
 .ql-snow .ql-picker-options{background:var(--card)!important;border-color:var(--border)!important}
+
+/* ---- Chart fix — use aspectRatio, no wrapper height needed ---- */
+.chart-wrap{width:100%;overflow:hidden}
+
+/* ---- Search bar fix ---- */
+.inp-sm{color:var(--text-primary)!important;pointer-events:auto}
+.inp-sm::placeholder{color:var(--text-muted)}
+
+/* ---- Bulk action bar ---- */
+.bulk-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius);margin-bottom:12px;animation:fadeIn .2s ease}
+.bulk-bar-label{font-size:13px;font-weight:600;color:var(--accent);flex:1}
+input[type="checkbox"]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+
+/* ---- Ultra Story Editor modal ---- */
+.modal-ultra{max-width:900px}
+.editor-tabs{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px}
+.etab{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text-secondary);transition:var(--transition)}
+.etab:hover{color:var(--text-primary)}
+.etab.active{background:var(--accent);color:#fff}
+.editor-stat{font-size:11px;font-family:var(--font-mono);color:var(--text-muted);background:var(--bg2);padding:2px 8px;border-radius:4px}
+
+/* ---- Story Preview ---- */
+.story-preview-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 32px;min-height:300px;max-height:500px;overflow-y:auto}
+.story-preview-wrap .prev-cover{width:100%;height:200px;object-fit:cover;border-radius:8px;margin-bottom:20px}
+.story-preview-wrap .prev-cat{font-family:var(--font-mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.story-preview-wrap .prev-title{font-family:var(--font-head);font-size:26px;font-weight:700;color:var(--text-primary);line-height:1.25;margin-bottom:10px}
+.story-preview-wrap .prev-meta{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.story-preview-wrap .prev-body{font-size:15px;color:var(--text-secondary);line-height:1.75}
+.story-preview-wrap .prev-body h2,.story-preview-wrap .prev-body h3{color:var(--text-primary);margin:16px 0 8px;font-weight:600}
+.story-preview-wrap .prev-body p{margin-bottom:12px}
+.story-preview-wrap .prev-body ul,.story-preview-wrap .prev-body ol{margin:8px 0 12px 20px}
+.story-preview-wrap .prev-body blockquote{border-left:3px solid var(--accent);padding-left:16px;color:var(--text-muted);font-style:italic;margin:12px 0}
+.story-preview-wrap .prev-body strong{color:var(--text-primary)}
 </style>
 
 
 <style>
 /* ---- Responsive ---- */
 @media(max-width:1200px){.stat-grid{grid-template-columns:repeat(2,1fr)}.dash-grid-2{grid-template-columns:1fr}}
-@media(max-width:900px){.sidebar{transform:translateX(-100%)}.sidebar.mobile-open{transform:none}.main{margin-left:0!important}.hamburger-btn{display:flex!important}.content-area{padding:20px 16px}.topbar{padding:0 16px}.section-header{flex-direction:column;align-items:flex-start}.section-actions{width:100%}.stat-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.modal-card{max-width:100%;margin:16px}}
+@media(max-width:900px){.sidebar{transform:translateX(-100%)}.sidebar.mobile-open{transform:none}.main{margin-left:0!important}.hamburger-btn{display:flex!important}.content-area{padding:20px 16px}.topbar{padding:0 16px}.section-header{flex-direction:column;align-items:flex-start}.section-actions{width:100%}.stat-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.modal-card{max-width:100%;margin:16px}.modal-ultra{max-width:100%!important}}
 @media(max-width:500px){.stat-grid{grid-template-columns:1fr}.stat-value{font-size:28px}.data-table thead{display:none}.data-table,.data-table tbody,.data-table tr,.data-table td{display:block;width:100%}.data-table tr{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;padding:12px}.data-table td{border:none;padding:6px 0}.table-thumb-lg{width:100%;height:140px}.pending-meta-grid{grid-template-columns:1fr}}
 </style>
 
@@ -1231,10 +1295,32 @@ async function initApp() {
     buildDashRecentPending();
     buildActivityFeed();
     populateCatSelects();
+    startDashAutoRefresh();
   } catch(e) {
     console.error('initApp error:', e);
     toast('Some data failed to load. Check Firebase.', 'error');
   }
+}
+
+let _dashRefreshTimer = null;
+function startDashAutoRefresh() {
+  if (_dashRefreshTimer) clearInterval(_dashRefreshTimer);
+  _dashRefreshTimer = setInterval(refreshDashboard, 60000);
+}
+
+async function refreshDashboard() {
+  const btn = document.getElementById('dash-refresh-btn');
+  if (btn) { btn.textContent = '↻ Refreshing…'; btn.disabled = true; }
+  try {
+    await Promise.all([fetchPending(), fetchStories(), fetchVideos(), fetchContacts()]);
+    updateStatCards();
+    buildCharts();
+    buildDashRecentPending();
+    const el = document.getElementById('dash-last-refresh');
+    if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+    toast('Dashboard refreshed!', 'success');
+  } catch(e) { toast('Refresh failed.', 'error'); }
+  finally { if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; } }
 }
 
 function setGreeting() {
@@ -1441,16 +1527,18 @@ function buildCharts() {
       datasets: [{
         label: 'Count',
         data: [state.pending.length, state.stories.length, state.videos.length, state.contacts.length],
-        backgroundColor: ['rgba(245,158,11,.7)','rgba(34,197,94,.7)','rgba(59,130,246,.7)','rgba(200,16,46,.7)'],
-        borderRadius: 6, borderSkipped: false
+        backgroundColor: ['rgba(245,158,11,.8)','rgba(34,197,94,.8)','rgba(59,130,246,.8)','rgba(200,16,46,.8)'],
+        borderRadius: 8, borderSkipped: false, barThickness: 40
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.2,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}` } } },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#8a8a96' } },
-        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#8a8a96', stepSize: 1 } }
+        x: { grid: { display: false }, ticks: { color: '#8a8a96', font: { size: 12 } } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#8a8a96', stepSize: 1, precision: 0 }, beginAtZero: true }
       }
     }
   });
@@ -1458,7 +1546,20 @@ function buildCharts() {
   if (chartCats) chartCats.destroy();
   const catKeys = Object.keys(catCounts).filter(k => catCounts[k] > 0);
   const catVals = catKeys.map(k => catCounts[k]);
-  if (catKeys.length === 0) { ctx2.closest('.card').querySelector('canvas').style.display='none'; return; }
+  const noDataEl = ctx2.closest('.card');
+  if (catKeys.length === 0) {
+    ctx2.style.display = 'none';
+    if (!noDataEl.querySelector('.chart-empty')) {
+      const emp = document.createElement('div');
+      emp.className = 'chart-empty empty-state';
+      emp.style.cssText = 'padding:40px 0';
+      emp.innerHTML = '<div class="empty-icon" style="font-size:28px">📊</div><div style="font-size:12px">No story categories yet</div>';
+      noDataEl.appendChild(emp);
+    }
+    return;
+  }
+  ctx2.style.display = '';
+  noDataEl.querySelector('.chart-empty')?.remove();
   chartCats = new Chart(ctx2, {
     type: 'doughnut',
     data: {
@@ -1466,12 +1567,14 @@ function buildCharts() {
       datasets: [{
         data: catVals,
         backgroundColor: ['#C8102E','#3b82f6','#22c55e','#f59e0b','#a855f7','#06b6d4','#ec4899'],
-        borderWidth: 0, hoverOffset: 4
+        borderWidth: 2, borderColor: '#1a1a1e', hoverOffset: 6
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'right', labels: { color: '#8a8a96', font: { size: 11 }, boxWidth: 12 } } }
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.0,
+      plugins: { legend: { position: 'right', labels: { color: '#8a8a96', font: { size: 11 }, boxWidth: 12, padding: 12 } } }
     }
   });
 }
@@ -1679,26 +1782,103 @@ function filterStories() {
   renderStories();
 }
 
+let selectedStories = new Set();
+
 function renderStories() {
   const tbody = document.getElementById('stories-tbody');
   if (!tbody) return;
   if (storiesFiltered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">No stories found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">No stories found.</td></tr>`;
     return;
   }
   tbody.innerHTML = storiesFiltered.map(s => `
-    <tr>
+    <tr id="story-row-${s.id}">
+      <td><input type="checkbox" class="story-cb" data-id="${s.id}" onchange="handleStoryCheck(this)" ${selectedStories.has(s.id)?'checked':''}></td>
       <td><img class="table-thumb" src="${s.coverImage||'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2252%22 height=%2238%22><rect width=%2252%22 height=%2238%22 fill=%22%23242428%22/></svg>'}" loading="lazy"></td>
       <td><div class="td-title">${sanitize(s.title)}</div><div class="td-sub">By ${sanitize(s.author||'—')}</div></td>
       <td><span class="badge badge-soft">${sanitize(s.category||'—')}</span></td>
       <td class="font-mono" style="font-size:12px;color:var(--text-muted)">${(s.views||0).toLocaleString()}</td>
       <td class="font-mono" style="font-size:12px;color:var(--text-muted)">${formatDate(s.publishedAt)}</td>
       <td><div class="td-actions">
+        <button class="btn-ghost-sm" style="padding:5px 10px;font-size:11px" onclick="previewStory('${s.id}')" title="Preview">👁</button>
         <button class="btn-edit-sm" onclick="openEditModal('stories','${s.id}')">Edit</button>
         <button class="btn-danger-sm" onclick="deleteDoc('stories','${s.id}',fetchStories)">Del</button>
       </div></td>
     </tr>
   `).join('');
+  updateBulkBar();
+}
+
+function handleStoryCheck(cb) {
+  if (cb.checked) selectedStories.add(cb.dataset.id);
+  else selectedStories.delete(cb.dataset.id);
+  updateBulkBar();
+}
+
+function toggleSelectAllStories(masterCb) {
+  selectedStories.clear();
+  document.querySelectorAll('.story-cb').forEach(cb => {
+    cb.checked = masterCb.checked;
+    if (masterCb.checked) selectedStories.add(cb.dataset.id);
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('stories-bulk-bar');
+  const cnt = document.getElementById('stories-bulk-count');
+  if (!bar) return;
+  if (selectedStories.size > 0) {
+    bar.style.display = 'flex';
+    cnt.textContent = `${selectedStories.size} stor${selectedStories.size===1?'y':'ies'} selected`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearBulkStories() {
+  selectedStories.clear();
+  document.querySelectorAll('.story-cb').forEach(cb => cb.checked = false);
+  const master = document.getElementById('stories-select-all');
+  if (master) master.checked = false;
+  updateBulkBar();
+}
+
+async function bulkDeleteStories() {
+  if (!selectedStories.size) return;
+  const n = selectedStories.size;
+  showConfirm('Bulk Delete', `Permanently delete ${n} stor${n===1?'y':'ies'}? This cannot be undone.`, async () => {
+    const ids = [...selectedStories];
+    let done = 0;
+    for (const id of ids) {
+      try {
+        await db.collection('stories').doc(id).delete();
+        await logAction('deleted', 'stories', id);
+        done++;
+      } catch(e) { console.error('bulk delete error', id, e); }
+    }
+    toast(`Deleted ${done} stor${done===1?'y':'ies'}.`, done===n?'success':'warning');
+    selectedStories.clear();
+    fetchStories();
+  }, '🗑️');
+}
+
+function previewStory(id) {
+  const story = state.stories.find(s => s.id === id);
+  if (!story) { toast('Story not found in cache — try refreshing.', 'error'); return; }
+  const coverHtml = story.coverImage ? `<img class="prev-cover" src="${sanitize(story.coverImage)}" alt="Cover">` : '';
+  document.getElementById('generic-modal-body').innerHTML = `
+    <div class="story-preview-wrap">
+      ${coverHtml}
+      <div class="prev-cat">${sanitize(story.category||'Uncategorised')}</div>
+      <div class="prev-title">${sanitize(story.title||'Untitled')}</div>
+      <div class="prev-meta">By ${sanitize(story.author||'—')} &nbsp;·&nbsp; ${sanitize(story.readTime||'—')} &nbsp;·&nbsp; ${formatDate(story.publishedAt)}</div>
+      <div class="prev-body">${story.content||'<em style="color:var(--text-muted)">No content yet.</em>'}</div>
+    </div>
+    <div class="modal-footer-actions"><button class="btn-ghost-sm" onclick="closeModal()">Close</button><button class="btn-edit-sm" onclick="closeModal();openEditModal('stories','${story.id}')">Edit Story</button></div>
+  `;
+  document.getElementById('generic-modal-title').textContent = '📰 Story Preview';
+  document.getElementById('generic-modal').classList.add('open');
 }
 
 /* ---- 10. VIDEOS ---- */
@@ -1831,14 +2011,87 @@ function openAddStoryModal() {
   document.getElementById('as-uni').value = '';
   document.getElementById('as-img').value = '';
   document.getElementById('as-readtime').value = '5 min read';
+  // Reset to write tab
+  switchEditorTab('write', document.getElementById('etab-write'));
   openModal2('add-story-modal');
   setTimeout(() => {
     const el = document.getElementById('as-quill');
     if (el && !el._ql) {
-      el._ql = new Quill('#as-quill', { theme:'snow', modules:{ toolbar:['bold','italic','underline',{header:[2,3,false]},'link','blockquote',{list:'ordered'},{list:'bullet'},'clean'] } });
-    } else if (el && el._ql) { el._ql.setContents([]); }
+      el._ql = new Quill('#as-quill', {
+        theme: 'snow',
+        placeholder: 'Start writing your story…',
+        modules: {
+          toolbar: [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ indent: '-1' }, { indent: '+1' }],
+            ['link', 'image'],
+            [{ align: [] }],
+            ['clean']
+          ]
+        }
+      });
+      // Word + char count
+      el._ql.on('text-change', () => {
+        const text = el._ql.getText().trim();
+        const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+        const chars = text.length;
+        const wc = document.getElementById('as-word-count');
+        const cc = document.getElementById('as-char-count');
+        if (wc) wc.textContent = `${words} word${words!==1?'s':''}`;
+        if (cc) cc.textContent = `${chars} char${chars!==1?'s':''}`;
+        // Auto read time
+        const rt = document.getElementById('as-readtime');
+        if (rt && words > 0) rt.value = `${Math.max(1, Math.ceil(words / 200))} min read`;
+      });
+    } else if (el && el._ql) {
+      el._ql.setContents([]);
+      const wc = document.getElementById('as-word-count');
+      const cc = document.getElementById('as-char-count');
+      if (wc) wc.textContent = '0 words';
+      if (cc) cc.textContent = '0 chars';
+    }
     window._addStoryQuill = el?._ql || null;
-  }, 100);
+  }, 120);
+}
+
+function switchEditorTab(tab, el) {
+  document.querySelectorAll('.etab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const writePanel = document.getElementById('editor-write-panel');
+  const previewPanel = document.getElementById('editor-preview-panel');
+  if (!writePanel || !previewPanel) return;
+  if (tab === 'preview') {
+    writePanel.style.display = 'none';
+    previewPanel.style.display = 'block';
+    updateEditorPreview();
+  } else {
+    writePanel.style.display = 'block';
+    previewPanel.style.display = 'none';
+  }
+}
+
+function updateEditorPreview() {
+  const panel = document.getElementById('story-preview-content');
+  if (!panel) return;
+  const title = document.getElementById('as-title')?.value || 'Untitled Story';
+  const author = document.getElementById('as-author')?.value || '—';
+  const cat = document.getElementById('as-cat')?.value || 'Uncategorised';
+  const img = document.getElementById('as-img')?.value || '';
+  const readTime = document.getElementById('as-readtime')?.value || '—';
+  const content = window._addStoryQuill ? window._addStoryQuill.root.innerHTML : '';
+  const coverHtml = img ? `<img class="prev-cover" src="${sanitize(img)}" alt="Cover">` : '';
+  panel.innerHTML = `
+    <div class="story-preview-wrap">
+      ${coverHtml}
+      <div class="prev-cat">${sanitize(cat)}</div>
+      <div class="prev-title">${sanitize(title)}</div>
+      <div class="prev-meta">By ${sanitize(author)} &nbsp;·&nbsp; ${sanitize(readTime)} &nbsp;·&nbsp; Today</div>
+      <div class="prev-body">${content || '<em style="color:var(--text-muted)">Start writing to see preview…</em>'}</div>
+    </div>
+  `;
 }
 
 async function saveNewStory() {
@@ -1847,17 +2100,20 @@ async function saveNewStory() {
   const cat = document.getElementById('as-cat')?.value;
   if (!title || !author || !cat) { toast('Title, author and category required.', 'error'); return; }
   const content = window._addStoryQuill ? window._addStoryQuill.root.innerHTML : '';
+  const text = window._addStoryQuill ? window._addStoryQuill.getText().trim() : '';
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  const autoReadTime = words > 0 ? `${Math.max(1, Math.ceil(words / 200))} min read` : (document.getElementById('as-readtime')?.value.trim() || '5 min read');
   try {
     const ref = await db.collection('stories').add({
       title, author, category: cat,
       university: document.getElementById('as-uni')?.value.trim() || '',
       coverImage: document.getElementById('as-img')?.value.trim() || '',
-      readTime: document.getElementById('as-readtime')?.value.trim() || '5 min read',
+      readTime: document.getElementById('as-readtime')?.value.trim() || autoReadTime,
       content, status: 'published', views: 0,
       publishedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     closeModal2('add-story-modal');
-    toast('Story published!', 'success');
+    toast('🚀 Story published!', 'success');
     await logAction('published', 'stories', ref.id);
     fetchStories();
   } catch(e) { handleFsError(e,'saveNewStory'); }
@@ -2590,9 +2846,10 @@ const cmdItems = [
   { icon: '📬', label: 'Go to Messages', action: () => nav('contacts', document.querySelector('[data-section=contacts]')) },
   { icon: '⚙️', label: 'Go to Settings', action: () => nav('settings', document.querySelector('[data-section=settings]')) },
   { icon: '🛡️', label: 'Go to Audit Log', action: () => nav('audit', document.querySelector('[data-section=audit]')) },
-  { icon: '➕', label: 'Add New Story', action: () => { nav('stories', document.querySelector('[data-section=stories]')); setTimeout(openAddStoryModal, 200); } },
+  { icon: '✍️', label: 'Write New Story', action: () => { nav('stories', document.querySelector('[data-section=stories]')); setTimeout(openAddStoryModal, 200); } },
   { icon: '➕', label: 'Add New Video', action: () => { nav('videos', document.querySelector('[data-section=videos]')); setTimeout(openAddVideoModal, 200); } },
   { icon: '🔥', label: 'Add Trending Item', action: () => { nav('trending', document.querySelector('[data-section=trending]')); setTimeout(openTrendingModal, 200); } },
+  { icon: '↻', label: 'Refresh Dashboard', action: () => { nav('dashboard', document.querySelector('[data-section=dashboard]')); setTimeout(refreshDashboard, 200); } },
   { icon: '⬇️', label: 'Export Stories JSON', action: () => exportCollection('stories') },
   { icon: '⬇️', label: 'Export Videos JSON', action: () => exportCollection('videos') },
   { icon: '🚪', label: 'Logout', action: handleLogout },
@@ -2621,16 +2878,17 @@ function renderCmdk(q) {
     container.innerHTML = `<div class="cmdk-empty">No commands found for "<strong>${sanitize(q)}</strong>"</div>`;
     return;
   }
+  // data-idx stores global cmdItems index so Enter key and onclick both resolve correctly
   container.innerHTML = `<div class="cmdk-section-label">Commands</div>` + filtered.map((item, i) =>
-    `<div class="cmdk-item${i===0?' selected':''}" data-idx="${i}" onclick="executeCmdk(${cmdItems.indexOf(item)})">
+    `<div class="cmdk-item${i===0?' selected':''}" data-idx="${cmdItems.indexOf(item)}" onclick="executeCmdk(${cmdItems.indexOf(item)})">
       <span class="cmdk-item-icon">${item.icon}</span>${sanitize(item.label)}
     </div>`
   ).join('');
 }
 
-function executeCmdk(idx) {
+function executeCmdk(globalIdx) {
   closeCmdk();
-  if (cmdItems[idx]) cmdItems[idx].action();
+  if (cmdItems[globalIdx]) cmdItems[globalIdx].action();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2654,8 +2912,12 @@ document.addEventListener('DOMContentLoaded', () => {
         items[cmdSelected]?.classList.add('selected');
         items[cmdSelected]?.scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'Enter') {
+        // Use global cmdItems index stored in data-idx — no re-filtering needed
         const sel = items[cmdSelected];
-        if (sel) { const idx = parseInt(sel.dataset.idx); const q = input.value; const filtered = cmdItems.filter(item => !q || item.label.toLowerCase().includes(q.toLowerCase())); if(filtered[idx]) { closeCmdk(); filtered[idx].action(); } }
+        if (sel) {
+          const globalIdx = parseInt(sel.dataset.idx);
+          if (!isNaN(globalIdx)) executeCmdk(globalIdx);
+        }
       }
     });
   }
