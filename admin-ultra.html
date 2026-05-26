@@ -6,7 +6,20 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>WEVOX Ultra Admin</title>
+<title>WEVOX Ultra Admin v3</title>
+<script>
+// Cache-bust: unregister any old service workers and clear caches on every load
+(function(){
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  } catch(e) { /* ignore */ }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
@@ -229,7 +242,7 @@
         </button>
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-breadcrumb" id="page-breadcrumb"></div>
-        <span class="font-mono" id="build-stamp" style="font-size:10px;color:var(--success);background:rgba(34,197,94,.15);padding:2px 6px;border-radius:4px;margin-left:6px">v2</span>
+        <span class="font-mono" id="build-stamp" style="font-size:11px;color:#fff;background:#22c55e;padding:3px 8px;border-radius:4px;margin-left:6px;font-weight:700">v3 BUILD 2026-05-26</span>
       </div>
       <div class="topbar-right">
         <div class="sync-indicator" id="sync-indicator" title="Realtime sync status">
@@ -1394,24 +1407,23 @@ function refreshCurrentSection() {
 }
 
 /* ---- Sidebar collapse / mobile close ---- */
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('sb-toggle');
-  if (btn) btn.addEventListener('click', () => {
-    if (window.innerWidth <= 900) {
-      // On mobile, the back-arrow closes the drawer
-      const sb = document.getElementById('sidebar');
-      const bd = document.getElementById('sidebar-backdrop');
-      sb.classList.remove('mobile-open');
-      if (bd) bd.style.display = 'none';
-    } else {
-      // On desktop, toggle the collapsed state
-      const sb = document.getElementById('sidebar');
-      const main = document.getElementById('main');
-      sb.classList.toggle('collapsed');
-      main.classList.toggle('expanded');
-    }
-  });
-});
+// Bulletproof: event delegation so this works no matter when DOMContentLoaded fires
+document.addEventListener('click', function(e) {
+  const t = e.target.closest && e.target.closest('#sb-toggle');
+  if (!t) return;
+  e.preventDefault();
+  if (window.innerWidth <= 900) {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebar-backdrop');
+    if (sb) sb.classList.remove('mobile-open');
+    if (bd) bd.style.display = 'none';
+  } else {
+    const sb = document.getElementById('sidebar');
+    const main = document.getElementById('main');
+    if (sb) sb.classList.toggle('collapsed');
+    if (main) main.classList.toggle('expanded');
+  }
+}, true);
 
 function toggleMobileSidebar() {
   const sb = document.getElementById('sidebar');
@@ -1449,6 +1461,15 @@ function closeConfirm(runCb) {
     try { cb(); } catch (e) { console.error('confirm callback error:', e); }
   }
 }
+// Belt-and-suspenders: bulletproof event delegation that fires on any tap inside the confirm dialog,
+// regardless of inline onclick or DOMContentLoaded timing.
+document.addEventListener('click', function(e) {
+  const t = e.target.closest && e.target.closest('#confirm-ok, #confirm-cancel');
+  if (!t) return;
+  e.preventDefault();
+  e.stopPropagation();
+  closeConfirm(t.id === 'confirm-ok');
+}, true);
 document.addEventListener('DOMContentLoaded', () => {
   const cancelBtn = document.getElementById('confirm-cancel');
   const okBtn = document.getElementById('confirm-ok');
